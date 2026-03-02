@@ -133,7 +133,7 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
               slug: cs.slug,
               name: cs.slug,
               description: 'Recently installed, initializing...',
-              enabled: false,
+              enabled: (directConfig as { enabled?: boolean }).enabled ?? false,
               icon: '⌛',
               version: cs.version || 'unknown',
               author: undefined,
