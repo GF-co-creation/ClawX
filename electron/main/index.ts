@@ -163,7 +163,7 @@ async function initialize(): Promise<void> {
   registerIpcHandlers(gatewayManager, clawHubService, mainWindow);
 
   // Register update handlers
-  registerUpdateHandlers(appUpdater, mainWindow);
+  registerUpdateHandlers(appUpdater, mainWindow, gatewayManager);
 
   // Note: Auto-check for updates is driven by the renderer (update store init)
   // so it respects the user's "Auto-check for updates" setting.

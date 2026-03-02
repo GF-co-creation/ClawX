@@ -11,6 +11,7 @@ import { BrowserWindow, app, ipcMain } from 'electron';
 import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { setQuitting } from './app-state';
+import type { GatewayManager } from '../gateway/manager';
 
 export interface UpdateStatus {
   status: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
@@ -43,6 +44,7 @@ export class AppUpdater extends EventEmitter {
   private status: UpdateStatus = { status: 'idle' };
   private autoInstallTimer: NodeJS.Timeout | null = null;
   private autoInstallCountdown = 0;
+  private preQuitHook: (() => Promise<void>) | null = null;
 
   /** Delay (in seconds) before auto-installing a downloaded update. */
   private static readonly AUTO_INSTALL_DELAY_SECONDS = 5;
@@ -215,8 +217,22 @@ export class AppUpdater extends EventEmitter {
    * BEFORE calling quitAndInstall(). This lets the native quit flow close
    * the window cleanly while ShipIt runs independently to replace the app.
    */
-  quitAndInstall(): void {
+  /**
+   * Set a hook that runs before quit-and-install (e.g. stop Gateway).
+   */
+  setPreQuitHook(hook: () => Promise<void>): void {
+    this.preQuitHook = hook;
+  }
+
+  async quitAndInstall(): Promise<void> {
     logger.info('[Updater] quitAndInstall called');
+    if (this.preQuitHook) {
+      try {
+        await this.preQuitHook();
+      } catch (err) {
+        logger.warn('[Updater] preQuitHook error:', err);
+      }
+    }
     setQuitting();
     autoUpdater.quitAndInstall();
   }
@@ -236,7 +252,7 @@ export class AppUpdater extends EventEmitter {
 
       if (this.autoInstallCountdown <= 0) {
         this.clearAutoInstallTimer();
-        this.quitAndInstall();
+        void this.quitAndInstall();
       }
     }, 1000);
   }
@@ -280,9 +296,21 @@ export class AppUpdater extends EventEmitter {
  */
 export function registerUpdateHandlers(
   updater: AppUpdater,
-  mainWindow: BrowserWindow
+  mainWindow: BrowserWindow,
+  gatewayManager?: GatewayManager,
 ): void {
   updater.setMainWindow(mainWindow);
+
+  // Set pre-quit hook to stop Gateway before NSIS installer runs.
+  // Without this, the Gateway process keeps files locked on Windows and
+  // the NSIS installer cannot overwrite them in the install directory.
+  if (gatewayManager) {
+    updater.setPreQuitHook(async () => {
+      logger.info('[Updater] Stopping Gateway before install...');
+      await gatewayManager.stop();
+      logger.info('[Updater] Gateway stopped.');
+    });
+  }
 
   // Get current update status
   ipcMain.handle('update:status', () => {
@@ -316,8 +344,8 @@ export function registerUpdateHandlers(
   });
 
   // Install update and restart
-  ipcMain.handle('update:install', () => {
-    updater.quitAndInstall();
+  ipcMain.handle('update:install', async () => {
+    await updater.quitAndInstall();
     return { success: true };
   });
 
