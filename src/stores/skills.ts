@@ -37,6 +37,7 @@ type ClawHubListResult = {
 interface SkillsState {
   skills: Skill[];
   searchResults: MarketplaceSkill[];
+  allExploreResults: MarketplaceSkill[];
   loading: boolean;
   searching: boolean;
   searchError: string | null;
@@ -61,6 +62,7 @@ interface SkillsState {
 export const useSkillsStore = create<SkillsState>((set, get) => ({
   skills: [],
   searchResults: [],
+  allExploreResults: [],
   loading: false,
   searching: false,
   searchError: null,
@@ -161,18 +163,48 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
   searchSkills: async (query: string) => {
     set({ searching: true, searchError: null });
     try {
-      const result = await window.electron.ipcRenderer.invoke('clawhub:search', { query }) as { success: boolean; results?: MarketplaceSkill[]; error?: string };
-      if (result.success) {
-        set({ searchResults: result.results || [], marketplaceNextCursor: null });
-      } else {
-        if (result.error?.includes('Timeout')) {
-          throw new Error('searchTimeoutError');
+      // 1. Server-side search (covers all 13k+ skills)
+      let serverResults: MarketplaceSkill[] = [];
+      try {
+        const result = await window.electron.ipcRenderer.invoke('clawhub:search', { query }) as { success: boolean; results?: MarketplaceSkill[]; error?: string };
+        if (result.success) {
+          serverResults = result.results || [];
+        } else {
+          if (result.error?.includes('Timeout')) {
+            throw new Error('searchTimeoutError');
+          }
+          if (result.error?.toLowerCase().includes('rate limit')) {
+            throw new Error('searchRateLimitError');
+          }
+          throw new Error(result.error || 'Search failed');
         }
-        if (result.error?.toLowerCase().includes('rate limit')) {
-          throw new Error('searchRateLimitError');
-        }
-        throw new Error(result.error || 'Search failed');
+      } catch (err) {
+        // If server search fails entirely, still try client-side below
+        const { allExploreResults } = get();
+        if (allExploreResults.length === 0) throw err;
+        console.warn('[searchSkills] Server search failed, using client-side only:', err);
       }
+
+      // 2. Client-side filtering on cached explore results (matches description too)
+      const { allExploreResults } = get();
+      const q = query.toLowerCase();
+      const localMatches = allExploreResults.filter(s =>
+        s.name.toLowerCase().includes(q) ||
+        s.slug.toLowerCase().includes(q) ||
+        s.description.toLowerCase().includes(q)
+      );
+
+      // 3. Merge & deduplicate (server results first, then local-only matches)
+      const seen = new Set(serverResults.map(s => s.slug));
+      const merged = [...serverResults];
+      for (const s of localMatches) {
+        if (!seen.has(s.slug)) {
+          merged.push(s);
+          seen.add(s.slug);
+        }
+      }
+
+      set({ searchResults: merged, marketplaceNextCursor: null });
     } catch (error) {
       set({ searchError: String(error) });
     } finally {
@@ -189,7 +221,8 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
       };
       console.log('[exploreSkills] IPC result:', { success: result.success, itemCount: result.items?.length, nextCursor: result.nextCursor?.substring(0, 30), error: result.error });
       if (result.success) {
-        set({ searchResults: result.items || [], marketplaceNextCursor: result.nextCursor || null });
+        const items = result.items || [];
+        set({ searchResults: items, allExploreResults: items, marketplaceNextCursor: result.nextCursor || null });
       } else {
         throw new Error(result.error || 'Explore failed');
       }
@@ -212,8 +245,10 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
         success: boolean; items?: MarketplaceSkill[]; nextCursor?: string | null; error?: string;
       };
       if (result.success && result.items) {
+        const merged = [...searchResults, ...result.items];
         set({
-          searchResults: [...searchResults, ...result.items],
+          searchResults: merged,
+          allExploreResults: merged,
           marketplaceNextCursor: result.nextCursor || null,
         });
       }
