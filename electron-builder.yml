@@ -113,7 +113,7 @@ win:
 
 nsis:
   oneClick: false
-  perMachine: false
+  perMachine: true
   # Avoid NSIS build failure: warning 6010 (_ci_StrContains "not referenced") is emitted when
   # building the uninstaller, because that function is only used in the install macro.
   warningsAsErrors: false
