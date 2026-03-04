@@ -2,16 +2,18 @@
  * Auto-Updater Module
  * Handles automatic application updates using electron-updater
  *
- * Update provider is configured in electron-builder.yml (GitHub Releases).
- * For prerelease channels (alpha, beta), the channel is set at runtime
- * so electron-updater requests the correct yml filename.
+ * Update providers are configured in electron-builder.yml (OSS primary, GitHub fallback).
+ * For prerelease channels (alpha, beta), the feed URL is overridden at runtime
+ * to point at the channel-specific OSS directory (e.g. /alpha/, /beta/).
  */
 import { autoUpdater, UpdateInfo, ProgressInfo, UpdateDownloadedEvent } from 'electron-updater';
 import { BrowserWindow, app, ipcMain } from 'electron';
 import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { setQuitting } from './app-state';
-import type { GatewayManager } from '../gateway/manager';
+
+/** Base CDN URL (without trailing channel path) */
+const OSS_BASE_URL = 'https://oss.intelli-spectrum.com';
 
 export interface UpdateStatus {
   status: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
@@ -44,7 +46,6 @@ export class AppUpdater extends EventEmitter {
   private status: UpdateStatus = { status: 'idle' };
   private autoInstallTimer: NodeJS.Timeout | null = null;
   private autoInstallCountdown = 0;
-  private preQuitHook: (() => Promise<void>) | null = null;
 
   /** Delay (in seconds) before auto-installing a downloaded update. */
   private static readonly AUTO_INSTALL_DELAY_SECONDS = 5;
@@ -62,22 +63,22 @@ export class AppUpdater extends EventEmitter {
       debug: (msg: string) => logger.debug('[Updater]', msg),
     };
 
-    // Detect prerelease channel from version string
+    // Override feed URL for prerelease channels so that
+    // alpha -> /alpha/alpha-mac.yml, beta -> /beta/beta-mac.yml, etc.
     const version = app.getVersion();
     const channel = detectChannel(version);
+    const feedUrl = `${OSS_BASE_URL}/${channel}`;
 
-    const feedUrl = `https://github.com/guangfangongjian/ClawX/releases`;
     logger.info(`[Updater] Version: ${version}, channel: ${channel}, feedUrl: ${feedUrl}`);
 
     // Set channel so electron-updater requests the correct yml filename.
-    // e.g. channel "alpha" → requests alpha.yml, channel "latest" → requests latest.yml
+    // e.g. channel "alpha" → requests alpha-mac.yml, channel "latest" → requests latest-mac.yml
     autoUpdater.channel = channel;
 
-    // Use GitHub Releases provider (configured in electron-builder.yml)
     autoUpdater.setFeedURL({
-      provider: 'github',
-      owner: 'guangfangongjian',
-      repo: 'ClawX',
+      provider: 'generic',
+      url: feedUrl,
+      useMultipleRangeRequest: false,
     });
 
     this.setupListeners();
@@ -217,22 +218,8 @@ export class AppUpdater extends EventEmitter {
    * BEFORE calling quitAndInstall(). This lets the native quit flow close
    * the window cleanly while ShipIt runs independently to replace the app.
    */
-  /**
-   * Set a hook that runs before quit-and-install (e.g. stop Gateway).
-   */
-  setPreQuitHook(hook: () => Promise<void>): void {
-    this.preQuitHook = hook;
-  }
-
-  async quitAndInstall(): Promise<void> {
+  quitAndInstall(): void {
     logger.info('[Updater] quitAndInstall called');
-    if (this.preQuitHook) {
-      try {
-        await this.preQuitHook();
-      } catch (err) {
-        logger.warn('[Updater] preQuitHook error:', err);
-      }
-    }
     setQuitting();
     autoUpdater.quitAndInstall();
   }
@@ -252,7 +239,7 @@ export class AppUpdater extends EventEmitter {
 
       if (this.autoInstallCountdown <= 0) {
         this.clearAutoInstallTimer();
-        void this.quitAndInstall();
+        this.quitAndInstall();
       }
     }, 1000);
   }
@@ -296,21 +283,9 @@ export class AppUpdater extends EventEmitter {
  */
 export function registerUpdateHandlers(
   updater: AppUpdater,
-  mainWindow: BrowserWindow,
-  gatewayManager?: GatewayManager,
+  mainWindow: BrowserWindow
 ): void {
   updater.setMainWindow(mainWindow);
-
-  // Set pre-quit hook to stop Gateway before NSIS installer runs.
-  // Without this, the Gateway process keeps files locked on Windows and
-  // the NSIS installer cannot overwrite them in the install directory.
-  if (gatewayManager) {
-    updater.setPreQuitHook(async () => {
-      logger.info('[Updater] Stopping Gateway before install...');
-      await gatewayManager.stop();
-      logger.info('[Updater] Gateway stopped.');
-    });
-  }
 
   // Get current update status
   ipcMain.handle('update:status', () => {
@@ -344,8 +319,8 @@ export function registerUpdateHandlers(
   });
 
   // Install update and restart
-  ipcMain.handle('update:install', async () => {
-    await updater.quitAndInstall();
+  ipcMain.handle('update:install', () => {
+    updater.quitAndInstall();
     return { success: true };
   });
 

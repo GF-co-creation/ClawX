@@ -49,8 +49,10 @@ const electronAPI = {
         // Settings
         'settings:get',
         'settings:set',
+        'settings:setMany',
         'settings:getAll',
         'settings:reset',
+        'usage:recentTokenHistory',
         // Update
         'update:status',
         'update:version',
@@ -131,6 +133,8 @@ const electronAPI = {
         'media:saveImage',
         // Chat send with media (reads staged files in main process)
         'chat:sendWithMedia',
+        // Session management
+        'session:delete',
         // OpenClaw extras
         'openclaw:getDir',
         'openclaw:getConfigDir',
