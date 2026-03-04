@@ -204,6 +204,17 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
         }
       }
 
+      // 4. Enrich version info from cached explore results (search API returns version: null)
+      const versionMap = new Map(allExploreResults.map(s => [s.slug, s.version]));
+      for (const s of merged) {
+        if (!s.version || s.version === '0.0.0') {
+          const cached = versionMap.get(s.slug);
+          if (cached && cached !== '0.0.0') {
+            s.version = cached;
+          }
+        }
+      }
+
       set({ searchResults: merged, marketplaceNextCursor: null });
     } catch (error) {
       set({ searchError: String(error) });

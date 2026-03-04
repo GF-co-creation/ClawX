@@ -2,7 +2,7 @@
  * Skills Page
  * Browse and manage AI skills
  */
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -504,7 +504,9 @@ function MarketplaceSkillCard({
             <div>
               <CardTitle className="text-base group-hover:text-primary transition-colors">{skill.name}</CardTitle>
               <CardDescription className="text-xs flex items-center gap-2">
-                <span>v{skill.version}</span>
+                {skill.version && skill.version !== '0.0.0' && (
+                  <span>v{skill.version}</span>
+                )}
                 {skill.author && (
                   <>
                     <span>•</span>
@@ -644,6 +646,7 @@ export function Skills() {
     marketplaceNextCursor,
     loadingMore,
   } = useSkillsStore();
+  const allExploreResults = useSkillsStore((s) => s.allExploreResults);
   const { t } = useTranslation('skills');
   const gatewayStatus = useGatewayStore((state) => state.status);
   const [searchQuery, setSearchQuery] = useState('');
@@ -651,7 +654,7 @@ export function Skills() {
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
   const [activeTab, setActiveTab] = useState('all');
   const [selectedSource, setSelectedSource] = useState<'all' | 'built-in' | 'marketplace'>('all');
-  const marketplaceDiscoveryAttemptedRef = useRef(false);
+  // marketplaceDiscoveryAttemptedRef removed — preload effect handles initial load
   const [marketplacePage, setMarketplacePage] = useState(1);
   const MARKETPLACE_PAGE_SIZE = 24;
 
@@ -756,20 +759,28 @@ export function Skills() {
       .catch(console.error);
   }, []);
 
+  // Preload marketplace data once on mount (background)
+  useEffect(() => {
+    if (allExploreResults.length === 0) {
+      exploreSkills();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // When entering marketplace tab without a search query, restore cached explore results
+  // so the user sees data instantly without a network request.
+  useEffect(() => {
+    if (activeTab === 'marketplace' && !marketplaceQuery.trim() && allExploreResults.length > 0) {
+      useSkillsStore.setState({ searchResults: allExploreResults, marketplaceNextCursor: null });
+    }
+  }, [activeTab, marketplaceQuery, allExploreResults]);
+
   // Handle marketplace search
   const handleMarketplaceSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     setMarketplacePage(1);
     searchSkills(marketplaceQuery);
   }, [marketplaceQuery, searchSkills]);
-
-  // Auto-reset when query is cleared
-  useEffect(() => {
-    if (activeTab === 'marketplace' && marketplaceQuery === '' && marketplaceDiscoveryAttemptedRef.current) {
-      setMarketplacePage(1);
-      exploreSkills();
-    }
-  }, [marketplaceQuery, activeTab, exploreSkills]);
 
   // Handle install
   const handleInstall = useCallback(async (slug: string) => {
@@ -788,26 +799,6 @@ export function Skills() {
       }
     }
   }, [installSkill, enableSkill, t, skillsDirPath]);
-
-  // Initial marketplace load (Discovery) - use HTTP API for full list
-  // Reset discovery flag when leaving marketplace tab so it retries on re-entry
-  useEffect(() => {
-    if (activeTab !== 'marketplace') {
-      marketplaceDiscoveryAttemptedRef.current = false;
-      return;
-    }
-    if (marketplaceQuery.trim()) {
-      return;
-    }
-    if (searching) {
-      return;
-    }
-    if (marketplaceDiscoveryAttemptedRef.current && searchResults.length > 0) {
-      return;
-    }
-    marketplaceDiscoveryAttemptedRef.current = true;
-    exploreSkills();
-  }, [activeTab, marketplaceQuery, searching, exploreSkills, searchResults.length]);
 
   // Handle uninstall
   const handleUninstall = useCallback(async (slug: string) => {
@@ -838,7 +829,13 @@ export function Skills() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={fetchSkills} disabled={!isGatewayRunning}>
+          <Button variant="outline" onClick={() => {
+            if (activeTab === 'marketplace') {
+              exploreSkills();
+            } else {
+              fetchSkills();
+            }
+          }} disabled={activeTab !== 'marketplace' && !isGatewayRunning}>
             <RefreshCw className="h-4 w-4 mr-2" />
             {t('refresh')}
           </Button>
@@ -1008,7 +1005,7 @@ export function Skills() {
                       {skill.description}
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      {skill.version && (
+                      {skill.version && skill.version !== '0.0.0' && (
                         <Badge variant="outline" className="text-xs">
                           v{skill.version}
                         </Badge>

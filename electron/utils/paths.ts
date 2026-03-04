@@ -159,6 +159,37 @@ export function isOpenClawBuilt(): boolean {
 }
 
 /**
+ * In dev mode, try to locate an installed (packaged) ClawX's openclaw directory.
+ * The packaged build has fully compiled extensions that the npm package lacks,
+ * so we prefer it for running the Gateway in development.
+ * Returns the directory path if found, or null.
+ */
+export function getInstalledOpenClawDir(): string | null {
+  if (app.isPackaged) return null; // Not relevant in packaged mode
+  const candidates: string[] = [];
+  if (process.platform === 'win32') {
+    candidates.push(
+      join('C:', 'Program Files', 'ClawX', 'resources', 'openclaw'),
+      join(process.env.LOCALAPPDATA || '', 'Programs', 'ClawX', 'resources', 'openclaw'),
+    );
+  } else if (process.platform === 'darwin') {
+    candidates.push('/Applications/ClawX.app/Contents/Resources/openclaw');
+  } else {
+    candidates.push('/opt/ClawX/resources/openclaw');
+  }
+  for (const dir of candidates) {
+    if (!dir) continue;
+    const entry = join(dir, 'openclaw.mjs');
+    const dist = join(dir, 'dist');
+    if (existsSync(entry) && existsSync(dist)) {
+      logger.info(`Found installed OpenClaw at: ${dir}`);
+      return dir;
+    }
+  }
+  return null;
+}
+
+/**
  * Get OpenClaw status for environment check
  */
 export interface OpenClawStatus {

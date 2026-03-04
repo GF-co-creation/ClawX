@@ -93,8 +93,9 @@ export class ClawHubService {
 
             const isWin = process.platform === 'win32';
             const useShell = isWin && !this.useNodeRunner;
+            const { NODE_OPTIONS: _nodeOptions, ...baseEnv } = process.env;
             const env = {
-                ...process.env,
+                ...baseEnv,
                 CI: 'true',
                 FORCE_COLOR: '0',
             };
@@ -110,6 +111,7 @@ export class ClawHubService {
                     ...env,
                     CLAWHUB_WORKDIR: this.workDir,
                 },
+                windowsHide: true,
             });
 
             let stdout = '';
@@ -201,16 +203,52 @@ export class ClawHubService {
                 displayName: string;
                 summary?: string | null;
                 version?: string;
+                latestVersion?: { version: string } | null;
             }>;
         };
 
         console.log('[searchApi] results:', data.results?.length);
-        return (data.results || []).map(item => ({
+        const results = (data.results || []).map(item => ({
             slug: item.slug,
             name: item.displayName || item.slug,
             description: item.summary || '',
-            version: item.version || '0.0.0',
+            version: item.latestVersion?.version || item.version || '0.0.0',
         }));
+
+        // Enrich version info from detail API for results missing version
+        const needVersion = results.filter(r => !r.version || r.version === '0.0.0');
+        if (needVersion.length > 0) {
+            const details = await Promise.allSettled(
+                needVersion.map(r => this.fetchSkillVersion(r.slug))
+            );
+            for (let i = 0; i < needVersion.length; i++) {
+                const d = details[i];
+                if (d.status === 'fulfilled' && d.value) {
+                    needVersion[i].version = d.value;
+                }
+            }
+            console.log('[searchApi] enriched versions for', needVersion.length, 'skills');
+        }
+
+        return results;
+    }
+
+    /**
+     * Fetch a single skill's latest version from the detail API
+     */
+    private async fetchSkillVersion(slug: string): Promise<string | null> {
+        try {
+            const url = `https://clawhub.ai/api/v1/skills/${encodeURIComponent(slug)}`;
+            const res = await fetch(url);
+            if (!res.ok) return null;
+            const data = await res.json() as {
+                latestVersion?: { version: string } | null;
+                skill?: { tags?: { latest?: string } };
+            };
+            return data.latestVersion?.version || data.skill?.tags?.latest || null;
+        } catch {
+            return null;
+        }
     }
 
     /**
