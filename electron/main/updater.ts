@@ -12,9 +12,6 @@ import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { setQuitting } from './app-state';
 
-/** Base CDN URL (without trailing channel path) */
-const OSS_BASE_URL = 'https://oss.intelli-spectrum.com';
-
 export interface UpdateStatus {
   status: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
   info?: UpdateInfo;
@@ -63,22 +60,22 @@ export class AppUpdater extends EventEmitter {
       debug: (msg: string) => logger.debug('[Updater]', msg),
     };
 
-    // Override feed URL for prerelease channels so that
-    // alpha -> /alpha/alpha-mac.yml, beta -> /beta/beta-mac.yml, etc.
+    // Use GitHub Releases from our organization repo as the update source.
+    // electron-builder.yml already declares publish.provider=github, but we
+    // set it explicitly here so prerelease channel routing works correctly.
     const version = app.getVersion();
     const channel = detectChannel(version);
-    const feedUrl = `${OSS_BASE_URL}/${channel}`;
 
-    logger.info(`[Updater] Version: ${version}, channel: ${channel}, feedUrl: ${feedUrl}`);
+    logger.info(`[Updater] Version: ${version}, channel: ${channel}, provider: github (guangfangongjian/ClawX)`);
 
-    // Set channel so electron-updater requests the correct yml filename.
-    // e.g. channel "alpha" → requests alpha-mac.yml, channel "latest" → requests latest-mac.yml
+    // Set channel so electron-updater picks the correct release tag.
+    // e.g. channel "alpha" → looks for prerelease tags, "latest" → stable releases
     autoUpdater.channel = channel;
 
     autoUpdater.setFeedURL({
-      provider: 'generic',
-      url: feedUrl,
-      useMultipleRangeRequest: false,
+      provider: 'github',
+      owner: 'guangfangongjian',
+      repo: 'ClawX',
     });
 
     this.setupListeners();
