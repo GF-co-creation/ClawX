@@ -111,7 +111,7 @@ jobs:
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
-          git remote add gitee https://oauth2:${GITEE_TOKEN}@gitee.com/guangfangongjian/clawX.git || true
+          git remote add gitee https://oauth2:${GITEE_TOKEN}@gitee.com/guangfangongjian/ClawX.git || true
           git push gitee main --force
           git push gitee --tags --force
 
@@ -155,7 +155,7 @@ jobs:
         with:
           gitee_action: create_release
           gitee_owner: guangfangongjian
-          gitee_repo: clawX
+          gitee_repo: ClawX
           gitee_token: ${{ secrets.GITEE_TOKEN }}
           gitee_tag_name: ${{ github.ref_name }}
           gitee_release_name: ${{ github.ref_name }}
