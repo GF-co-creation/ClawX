@@ -96,25 +96,6 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  sync-gitee:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Sync to Gitee
-        if: env.GITEE_TOKEN != ''
-        env:
-          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
-        run: |
-          git remote add gitee https://oauth2:${GITEE_TOKEN}@gitee.com/guangfangongjian/ClawX.git || true
-          git push gitee main --force
-          git push gitee --tags --force
-
   publish:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
@@ -154,7 +135,7 @@ jobs:
         uses: nicennnnnnnlee/action-gitee-release@master
         with:
           gitee_action: create_release
-          gitee_owner: guangfangongjian
+          gitee_owner: guangfan-gongjian
           gitee_repo: ClawX
           gitee_token: ${{ secrets.GITEE_TOKEN }}
           gitee_tag_name: ${{ github.ref_name }}
