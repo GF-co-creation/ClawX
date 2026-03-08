@@ -107,9 +107,11 @@ jobs:
           fetch-depth: 0
 
       - name: Sync to Gitee
-        if: ${{ secrets.GITEE_TOKEN != '' }}
+        if: env.GITEE_TOKEN != ''
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
-          git remote add gitee https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/guangfangongjian/clawX.git || true
+          git remote add gitee https://oauth2:${GITEE_TOKEN}@gitee.com/guangfangongjian/clawX.git || true
           git push gitee main --force
           git push gitee --tags --force
 
