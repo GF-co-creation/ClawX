@@ -13,6 +13,7 @@ release/
 .vscode/*
 !.vscode/extensions.json
 .idea/
+codechat/
 *.suo
 *.ntvs*
 *.njsproj

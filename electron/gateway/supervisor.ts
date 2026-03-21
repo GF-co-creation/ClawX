@@ -4,6 +4,7 @@ import { existsSync } from 'fs';
 import WebSocket from 'ws';
 import { getOpenClawDir, getOpenClawEntryPath } from '../utils/paths';
 import { getUvMirrorEnv } from '../utils/uv-env';
+import { loadProviderEnv } from './config-sync';
 import { isPythonReady, setupManagedPython } from '../utils/uv-setup';
 import { logger } from '../utils/logger';
 import { prependPathEntry } from '../utils/env-path';
@@ -298,6 +299,7 @@ export async function runOpenClawDoctorRepair(): Promise<boolean> {
     : baseProcessEnv;
 
   const uvEnv = await getUvMirrorEnv();
+  const { providerEnv } = await loadProviderEnv();
   const doctorArgs = ['doctor', '--fix', '--yes', '--non-interactive'];
   logger.info(
     `Running OpenClaw doctor repair (entry="${entryScript}", args="${doctorArgs.join(' ')}", cwd="${openclawDir}", bundledBin=${binPathExists ? 'yes' : 'no'})`,
@@ -306,6 +308,7 @@ export async function runOpenClawDoctorRepair(): Promise<boolean> {
   return await new Promise<boolean>((resolve) => {
     const forkEnv: Record<string, string | undefined> = {
       ...baseEnvPatched,
+      ...providerEnv,
       ...uvEnv,
       OPENCLAW_NO_RESPAWN: '1',
     };

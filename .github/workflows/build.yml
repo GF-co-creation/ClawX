@@ -1,0 +1,148 @@
+name: Build & Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows
+          - os: windows-latest
+            platform: win
+            args: --win nsis --x64
+            artifact: release-win-x64
+          - os: windows-latest
+            platform: win
+            args: --win nsis --arm64
+            artifact: release-win-arm64
+          # Linux x64 (AppImage + deb + rpm)
+          - os: ubuntu-latest
+            platform: linux
+            args: --linux AppImage deb rpm --x64
+            artifact: release-linux-x64
+          # Linux arm64 (AppImage + deb, no rpm)
+          - os: ubuntu-latest
+            platform: linux
+            args: --linux AppImage deb --arm64
+            artifact: release-linux-arm64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download UV binaries
+        run: pnpm run uv:download:${{ matrix.platform }}
+
+      - name: Build frontend & bundle
+        run: |
+          pnpm run build:vite
+          pnpm exec zx scripts/bundle-openclaw.mjs
+          pnpm exec zx scripts/bundle-openclaw-plugins.mjs
+          pnpm exec zx scripts/bundle-plugins.mjs
+
+      - name: Package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: pnpm exec electron-builder ${{ matrix.args }} --publish never
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            release/*.exe
+            release/*.AppImage
+            release/*.deb
+            release/*.rpm
+            release/*.blockmap
+            release/*.yml
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          draft: false
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Collect release files
+        id: collect
+        shell: bash
+        run: |
+          FILES=""
+          for f in artifacts/*; do
+            [ -f "$f" ] && FILES="${FILES}${f}"$'\n'
+          done
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Gitee Release
+        if: env.GITEE_TOKEN != ''
+        uses: nicennnnnnnlee/action-gitee-release@master
+        with:
+          gitee_action: create_release
+          gitee_owner: guangfan-gongjian
+          gitee_repo: ClawX
+          gitee_token: ${{ secrets.GITEE_TOKEN }}
+          gitee_tag_name: ${{ github.ref_name }}
+          gitee_release_name: ${{ github.ref_name }}
+          gitee_release_body: "Release ${{ github.ref_name }} - synced from GitHub"
+          gitee_target_commitish: main
+          gitee_prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
+          gitee_files: ${{ steps.collect.outputs.files }}
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}

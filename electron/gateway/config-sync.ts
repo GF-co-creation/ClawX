@@ -18,7 +18,7 @@ function fsPath(filePath: string): string {
 import { getAllSettings } from '../utils/store';
 import { getApiKey, getDefaultProvider, getProvider } from '../utils/secure-storage';
 import { getProviderEnvVar, getKeyableProviderTypes } from '../utils/provider-registry';
-import { getOpenClawDir, getOpenClawEntryPath, isOpenClawPresent } from '../utils/paths';
+import { getOpenClawDir, getOpenClawEntryPath, getInstalledOpenClawDir, isOpenClawPresent } from '../utils/paths';
 import { getUvMirrorEnv } from '../utils/uv-env';
 import { listConfiguredChannels } from '../utils/channel-config';
 import { syncGatewayTokenToConfig, syncBrowserConfigToOpenClaw, syncSessionIdleMinutesToOpenClaw, sanitizeOpenClawConfig } from '../utils/openclaw-auth';
@@ -172,7 +172,7 @@ export async function syncGatewayConfigBeforeLaunch(
   }
 }
 
-async function loadProviderEnv(): Promise<{ providerEnv: Record<string, string>; loadedProviderKeyCount: number }> {
+export async function loadProviderEnv(): Promise<{ providerEnv: Record<string, string>; loadedProviderKeyCount: number }> {
   const providerEnv: Record<string, string> = {};
   const providerTypes = getKeyableProviderTypes();
   let loadedProviderKeyCount = 0;
@@ -240,8 +240,8 @@ async function resolveChannelStartupPolicy(): Promise<{
 }
 
 export async function prepareGatewayLaunchContext(port: number): Promise<GatewayLaunchContext> {
-  const openclawDir = getOpenClawDir();
-  const entryScript = getOpenClawEntryPath();
+  let openclawDir = getOpenClawDir();
+  let entryScript = getOpenClawEntryPath();
 
   if (!isOpenClawPresent()) {
     throw new Error(`OpenClaw package not found at: ${openclawDir}`);
@@ -254,8 +254,21 @@ export async function prepareGatewayLaunchContext(port: number): Promise<Gateway
     throw new Error(`OpenClaw entry script not found at: ${entryScript}`);
   }
 
+  // In dev mode, prefer installed (packaged) OpenClaw which has compiled
+  // extensions.  The npm package only ships source extensions that fail
+  // OpenClaw's manifest validation in dev mode.
+  let mode: string = app.isPackaged ? 'packaged' : 'dev';
+  if (!app.isPackaged) {
+    const installedDir = getInstalledOpenClawDir();
+    if (installedDir) {
+      const installedEntry = path.join(installedDir, 'openclaw.mjs');
+      openclawDir = installedDir;
+      entryScript = installedEntry;
+      mode = 'dev-installed';
+    }
+  }
+
   const gatewayArgs = ['gateway', '--port', String(port), '--token', appSettings.gatewayToken, '--allow-unconfigured'];
-  const mode = app.isPackaged ? 'packaged' : 'dev';
 
   const platform = process.platform;
   const arch = process.arch;

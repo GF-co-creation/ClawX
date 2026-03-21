@@ -139,6 +139,41 @@ export function getClawHubCliBinPath(): string {
 }
 
 /**
+ * Detect installed (packaged) ClawX's openclaw directory for dev mode fallback.
+ * The npm package only ships source extensions that fail OpenClaw's manifest
+ * validation; the packaged app has compiled extensions that work correctly.
+ */
+export function getInstalledOpenClawDir(): string | null {
+  if (app.isPackaged) return null;
+
+  const candidates: string[] = [];
+  if (process.platform === 'win32') {
+    const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
+    const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local');
+    candidates.push(
+      join(programFiles, 'ClawX', 'resources', 'openclaw'),
+      join(localAppData, 'Programs', 'ClawX', 'resources', 'openclaw'),
+    );
+  } else if (process.platform === 'darwin') {
+    candidates.push('/Applications/ClawX.app/Contents/Resources/openclaw');
+  } else {
+    candidates.push(
+      '/opt/ClawX/resources/openclaw',
+      join(homedir(), '.local', 'share', 'ClawX', 'resources', 'openclaw'),
+    );
+  }
+
+  for (const dir of candidates) {
+    const entry = join(dir, 'openclaw.mjs');
+    if (existsSync(dir) && existsSync(entry)) {
+      logger.info(`Found installed OpenClaw at: ${dir}`);
+      return dir;
+    }
+  }
+  return null;
+}
+
+/**
  * Check if OpenClaw package exists
  */
 export function isOpenClawPresent(): boolean {
