@@ -79,6 +79,7 @@
         "@radix-ui/react-tabs": "^1.1.13",
         "@radix-ui/react-toast": "^1.2.15",
         "@radix-ui/react-tooltip": "^1.2.8",
+        "@art_style666/hi-light": "^2.0.4",
         "@sliverp/qqbot": "^1.6.1",
         "@soimy/dingtalk": "^3.3.0",
         "@testing-library/jest-dom": "^6.9.1",

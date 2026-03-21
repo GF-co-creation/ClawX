@@ -373,6 +373,45 @@
                 "認証情報を入力します"
             ],
             "docsUrl": "https://icnnp7d0dymg.feishu.cn/wiki/KPIJwlyiGiupMrkiS9ice39Zn2c"
+        },
+        "hi-light": {
+            "description": "HiLight WebSocket チャネルに接続します",
+            "docsUrl": "https://github.com/Gongcong/hi-light-plugin",
+            "fields": {
+                "wsUrl": {
+                    "label": "WebSocket URL",
+                    "placeholder": "wss://open.guangfan.com/open-apis/device-agent/v1/websocket",
+                    "description": "ベース WebSocket URL。プラグインは接続ごとに UUID パスを自動追加します。",
+                    "presetLabel": "広凡公式 (wss://open.guangfan.com/...)",
+                    "customLabel": "カスタム URL...",
+                    "customPlaceholder": "カスタム WebSocket URL を入力"
+                },
+                "authToken": {
+                    "label": "認証トークン (API Key)",
+                    "placeholder": "HiLight API Key",
+                    "description": "WebSocket ハンドシェイク時に Authorization ヘッダーで送信されるトークン。"
+                },
+                "dmPolicy": {
+                    "label": "DM ポリシー",
+                    "description": "ボットにダイレクトメッセージを送信できるユーザーを制御します。",
+                    "options": {
+                        "open": "オープン - 誰でも DM 可能",
+                        "pairing": "ペアリング - ペアリングコードが必要",
+                        "allowlist": "許可リスト - 指定ユーザーのみ"
+                    }
+                },
+                "allowFrom": {
+                    "label": "許可リスト",
+                    "placeholder": "user1,user2",
+                    "description": "DM を許可するユーザー ID のカンマ区切りリスト。DM ポリシーが「許可リスト」の場合のみ有効。"
+                }
+            },
+            "instructions": [
+                "アプリストアから HiLight App をダウンロード",
+                "設定 → アカウント管理 → API KEY を取得",
+                "WebSocket URL と API Key を入力",
+                "保存してゲートウェイを再起動"
+            ]
         }
     },
     "viewDocs": "ドキュメントを表示"

@@ -20,7 +20,8 @@ export type ChannelType =
   | 'msteams'
   | 'googlechat'
   | 'mattermost'
-  | 'qqbot';
+  | 'qqbot'
+  | 'hi-light';
 
 /**
  * Channel connection status
@@ -94,6 +95,7 @@ export const CHANNEL_ICONS: Record<ChannelType, string> = {
   googlechat: '💭',
   mattermost: '💠',
   qqbot: '🐧',
+  'hi-light': '💡',
 };
 
 /**
@@ -114,6 +116,7 @@ export const CHANNEL_NAMES: Record<ChannelType, string> = {
   googlechat: 'Google Chat',
   mattermost: 'Mattermost',
   qqbot: 'QQ Bot',
+  'hi-light': 'HiLight',
 };
 
 /**
@@ -555,13 +558,70 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
     ],
     isPlugin: true,
   },
+  'hi-light': {
+    id: 'hi-light',
+    name: 'HiLight',
+    icon: '💡',
+    description: 'channels:meta.hi-light.description',
+    connectionType: 'token',
+    docsUrl: 'channels:meta.hi-light.docsUrl',
+    configFields: [
+      {
+        key: 'wsUrl',
+        label: 'channels:meta.hi-light.fields.wsUrl.label',
+        type: 'select',
+        placeholder: 'channels:meta.hi-light.fields.wsUrl.placeholder',
+        required: true,
+        description: 'channels:meta.hi-light.fields.wsUrl.description',
+        options: [
+          { value: 'wss://open.guangfan.com/open-apis/device-agent/v1/websocket', label: 'channels:meta.hi-light.fields.wsUrl.presetLabel' },
+          { value: '__custom__', label: 'channels:meta.hi-light.fields.wsUrl.customLabel' },
+        ],
+      },
+      {
+        key: 'authToken',
+        label: 'channels:meta.hi-light.fields.authToken.label',
+        type: 'password',
+        placeholder: 'channels:meta.hi-light.fields.authToken.placeholder',
+        required: true,
+        description: 'channels:meta.hi-light.fields.authToken.description',
+      },
+      {
+        key: 'dmPolicy',
+        label: 'channels:meta.hi-light.fields.dmPolicy.label',
+        type: 'select',
+        required: false,
+        description: 'channels:meta.hi-light.fields.dmPolicy.description',
+        options: [
+          { value: 'open', label: 'channels:meta.hi-light.fields.dmPolicy.options.open' },
+          { value: 'pairing', label: 'channels:meta.hi-light.fields.dmPolicy.options.pairing' },
+          { value: 'allowlist', label: 'channels:meta.hi-light.fields.dmPolicy.options.allowlist' },
+        ],
+      },
+      {
+        key: 'allowFrom',
+        label: 'channels:meta.hi-light.fields.allowFrom.label',
+        type: 'text',
+        placeholder: 'channels:meta.hi-light.fields.allowFrom.placeholder',
+        required: false,
+        description: 'channels:meta.hi-light.fields.allowFrom.description',
+      },
+    ],
+    instructions: [
+      'channels:meta.hi-light.instructions.0',
+      'channels:meta.hi-light.instructions.1',
+      'channels:meta.hi-light.instructions.2',
+      'channels:meta.hi-light.instructions.3',
+    ],
+    isPlugin: true,
+  },
 };
 
 /**
  * Get primary supported channels (non-plugin, commonly used)
  */
 export function getPrimaryChannels(): ChannelType[] {
-  return ['telegram', 'discord', 'whatsapp', 'dingtalk', 'feishu', 'wecom', 'qqbot'];
+  return ['telegram', 'discord', 'whatsapp', 'dingtalk', 'feishu', 'hi-light'];
 }
 
 /**

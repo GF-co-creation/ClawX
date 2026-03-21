@@ -752,6 +752,27 @@ function ChannelLogo({ type }: { type: ChannelType }) {
 function ConfigField({ field, value, onChange, showSecret, onToggleSecret }: ConfigFieldProps) {
   const { t } = useTranslation('channels');
   const isPassword = field.type === 'password';
+  const isSelect = field.type === 'select' && field.options;
+
+  // For select fields: check if value matches a preset option
+  const isCustomSelected = isSelect && value !== '' && !field.options?.some(o => o.value !== '__custom__' && o.value === value);
+  const [showCustomInput, setShowCustomInput] = useState(isCustomSelected);
+  const [customValue, setCustomValue] = useState(isCustomSelected ? value : '');
+
+  const handleSelectChange = (selectedValue: string) => {
+    if (selectedValue === '__custom__') {
+      setShowCustomInput(true);
+      onChange(customValue);
+    } else {
+      setShowCustomInput(false);
+      onChange(selectedValue);
+    }
+  };
+
+  const handleCustomInputChange = (val: string) => {
+    setCustomValue(val);
+    onChange(val);
+  };
 
   return (
     <div className="space-y-2.5">
@@ -759,27 +780,53 @@ function ConfigField({ field, value, onChange, showSecret, onToggleSecret }: Con
         {t(field.label)}
         {field.required && <span className="text-destructive ml-1">*</span>}
       </Label>
-      <div className="flex gap-2">
-        <Input
-          id={field.key}
-          type={isPassword && !showSecret ? 'password' : 'text'}
-          placeholder={field.placeholder ? t(field.placeholder) : undefined}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className={inputClasses}
-        />
-        {isPassword && (
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={onToggleSecret}
-            className="h-[44px] w-[44px] rounded-xl bg-[#eeece3] dark:bg-muted border-black/10 dark:border-white/10 text-muted-foreground hover:text-foreground shrink-0 shadow-sm"
+      {isSelect ? (
+        <div className="space-y-2">
+          <select
+            id={field.key}
+            value={showCustomInput ? '__custom__' : (value || field.options![0]?.value || '')}
+            onChange={(e) => handleSelectChange(e.target.value)}
+            className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
-            {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </Button>
-        )}
-      </div>
+            {field.options!.map((option) => (
+              <option key={option.value} value={option.value}>
+                {t(option.label)}
+              </option>
+            ))}
+          </select>
+          {showCustomInput && (
+            <Input
+              type="text"
+              placeholder={t('meta.hi-light.fields.wsUrl.customPlaceholder')}
+              value={customValue}
+              onChange={(e) => handleCustomInputChange(e.target.value)}
+              className="font-mono text-sm"
+            />
+          )}
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <Input
+            id={field.key}
+            type={isPassword && !showSecret ? 'password' : 'text'}
+            placeholder={field.placeholder ? t(field.placeholder) : undefined}
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            className={inputClasses}
+          />
+          {isPassword && (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={onToggleSecret}
+              className="h-[44px] w-[44px] rounded-xl bg-[#eeece3] dark:bg-muted border-black/10 dark:border-white/10 text-muted-foreground hover:text-foreground shrink-0 shadow-sm"
+            >
+              {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+          )}
+        </div>
+      )}
       {field.description && (
         <p className="text-[13px] text-muted-foreground leading-relaxed">
           {t(field.description)}

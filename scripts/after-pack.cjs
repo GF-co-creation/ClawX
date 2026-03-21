@@ -424,6 +424,19 @@ exports.default = async function afterPack(context) {
   cpSync(src, dest, { recursive: true });
   console.log('[after-pack] ✅ openclaw node_modules copied.');
 
+  // 1.0.1 Copy build/plugins/ to resources/plugins/ (hi-light and other custom plugins)
+  //       electron-builder skips this because .gitignore contains "build/"
+  const buildPluginsDir = join(__dirname, '..', 'build', 'plugins');
+  const pluginsDest = join(resourcesDir, 'plugins');
+  if (existsSync(buildPluginsDir)) {
+    console.log(`[after-pack] Copying build/plugins to ${pluginsDest} ...`);
+    mkdirSync(pluginsDest, { recursive: true });
+    cpSync(buildPluginsDir, pluginsDest, { recursive: true });
+    console.log('[after-pack] ✅ build/plugins copied.');
+  } else {
+    console.warn('[after-pack] ⚠️  build/plugins not found, skipping custom plugins.');
+  }
+
   // Patch broken modules whose CJS transpiled output sets module.exports = undefined,
   // causing TypeError in Node.js 22+ ESM interop.
   patchBrokenModules(dest);

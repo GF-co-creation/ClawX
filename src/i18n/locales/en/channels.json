@@ -373,6 +373,45 @@
                 "Get App ID and Client Secret",
                 "Fill in your credentials below"
             ]
+        },
+        "hi-light": {
+            "description": "Connect HiLight WebSocket channel",
+            "docsUrl": "https://github.com/Gongcong/hi-light-plugin",
+            "fields": {
+                "wsUrl": {
+                    "label": "WebSocket URL",
+                    "placeholder": "wss://open.guangfan.com/open-apis/device-agent/v1/websocket",
+                    "description": "Base WebSocket URL. The plugin appends a UUID path on each connection.",
+                    "presetLabel": "Guangfan Official (wss://open.guangfan.com/...)",
+                    "customLabel": "Custom URL...",
+                    "customPlaceholder": "Enter custom WebSocket URL"
+                },
+                "authToken": {
+                    "label": "Auth Token (API Key)",
+                    "placeholder": "Your HiLight API Key",
+                    "description": "Token sent via Authorization header during WebSocket handshake."
+                },
+                "dmPolicy": {
+                    "label": "DM Policy",
+                    "description": "Control which users can direct message the bot.",
+                    "options": {
+                        "open": "Open - Anyone can DM",
+                        "pairing": "Pairing - Requires pairing code",
+                        "allowlist": "Allowlist - Only specified users"
+                    }
+                },
+                "allowFrom": {
+                    "label": "Allow List",
+                    "placeholder": "user1,user2",
+                    "description": "Comma-separated user IDs allowed to DM. Only effective when DM Policy is 'Allowlist'."
+                }
+            },
+            "instructions": [
+                "Download HiLight App from your app store",
+                "Go to Settings → Account → Get API KEY",
+                "Enter WebSocket URL and API Key below",
+                "Save and restart Gateway to apply"
+            ]
         }
     },
     "viewDocs": "View Documentation"
