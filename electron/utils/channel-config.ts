@@ -242,6 +242,19 @@ async function ensurePluginAllowlist(currentConfig: OpenClawConfig, channelType:
             currentConfig.plugins.allow = [...allow, 'qqbot'];
         }
     }
+
+    if (channelType === 'hi-light') {
+        if (!currentConfig.plugins) {
+            currentConfig.plugins = {};
+        }
+        currentConfig.plugins.enabled = true;
+        const allow = Array.isArray(currentConfig.plugins.allow)
+            ? currentConfig.plugins.allow as string[]
+            : [];
+        if (!allow.includes('hi-light')) {
+            currentConfig.plugins.allow = [...allow, 'hi-light'];
+        }
+    }
 }
 
 function transformChannelConfig(
