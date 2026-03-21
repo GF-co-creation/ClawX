@@ -315,7 +315,11 @@ export function ensurePluginInstalled(
     if (!sourceVersion || !installedVersion || sourceVersion === installedVersion) {
       return { installed: true }; // same version or unable to compare
     }
-    // Version differs — fall through to overwrite install
+    // Only upgrade if source is newer — never downgrade
+    if (sourceVersion < installedVersion) {
+      return { installed: true };
+    }
+    // Version differs and source is newer — fall through to overwrite install
     logger.info(
       `[plugin] Upgrading ${pluginLabel} plugin: ${installedVersion} → ${sourceVersion}`,
     );
