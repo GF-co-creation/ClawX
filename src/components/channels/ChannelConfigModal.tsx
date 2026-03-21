@@ -759,6 +759,16 @@ function ConfigField({ field, value, onChange, showSecret, onToggleSecret }: Con
   const [showCustomInput, setShowCustomInput] = useState(isCustomSelected);
   const [customValue, setCustomValue] = useState(isCustomSelected ? value : '');
 
+  // Auto-populate default value for select fields on mount
+  useEffect(() => {
+    if (isSelect && !value && field.options && field.options.length > 0) {
+      const firstNonCustom = field.options.find(o => o.value !== '__custom__');
+      if (firstNonCustom) {
+        onChange(firstNonCustom.value);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSelectChange = (selectedValue: string) => {
     if (selectedValue === '__custom__') {
       setShowCustomInput(true);
@@ -786,7 +796,7 @@ function ConfigField({ field, value, onChange, showSecret, onToggleSecret }: Con
             id={field.key}
             value={showCustomInput ? '__custom__' : (value || field.options![0]?.value || '')}
             onChange={(e) => handleSelectChange(e.target.value)}
-            className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-xs ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             {field.options!.map((option) => (
               <option key={option.value} value={option.value}>

@@ -72,7 +72,7 @@ export class AppUpdater extends EventEmitter {
     const version = app.getVersion();
     const channel = detectChannel(version);
 
-    logger.info(`[Updater] Version: ${version}, channel: ${channel}, provider: github (guangfangongjian/ClawX)`);
+    logger.info(`[Updater] Version: ${version}, channel: ${channel}, provider: github (GF-co-creation/ClawX)`);
 
     // Set channel so electron-updater picks the correct release tag.
     // e.g. channel "alpha" → looks for prerelease tags, "latest" → stable releases
@@ -80,7 +80,7 @@ export class AppUpdater extends EventEmitter {
 
     autoUpdater.setFeedURL({
       provider: 'github',
-      owner: 'guangfangongjian',
+      owner: 'GF-co-creation',
       repo: 'ClawX',
     });
 

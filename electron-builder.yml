@@ -53,7 +53,7 @@ npmRebuild: false
 # Primary: GitHub Releases from organization repo
 publish:
   - provider: github
-    owner: guangfangongjian
+    owner: GF-co-creation
     repo: ClawX
 
 # macOS Configuration
