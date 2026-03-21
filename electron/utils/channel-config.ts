@@ -21,10 +21,13 @@ const DEFAULT_ACCOUNT_ID = 'default';
 const CHANNEL_TOP_LEVEL_KEYS_TO_KEEP = new Set(['accounts', 'defaultAccount', 'enabled']);
 
 // Channels that are managed as plugins (config goes under plugins.entries, not channels)
+// hi-light is NOT in PLUGIN_CHANNELS because its runtime config (wsUrl, authToken)
+// must be stored under channels.hi-light (read by the plugin at runtime).
+// Plugin enablement is handled by ensurePluginAllowlist + plugins.entries.
 const PLUGIN_CHANNELS = ['whatsapp'];
 
 // Plugin channels that store full config (wsUrl, authToken, etc.) under plugins.entries
-const PLUGIN_CHANNELS_FULL_CONFIG = ['hi-light'];
+const PLUGIN_CHANNELS_FULL_CONFIG: string[] = [];
 
 // Unique credential key per channel type – used for duplicate bot detection.
 // Maps each channel type to the field that uniquely identifies a bot/account.
@@ -254,6 +257,13 @@ async function ensurePluginAllowlist(currentConfig: OpenClawConfig, channelType:
         if (!allow.includes('hi-light')) {
             currentConfig.plugins.allow = [...allow, 'hi-light'];
         }
+        if (!currentConfig.plugins.entries) {
+            currentConfig.plugins.entries = {};
+        }
+        if (!currentConfig.plugins.entries['hi-light']) {
+            currentConfig.plugins.entries['hi-light'] = {};
+        }
+        currentConfig.plugins.entries['hi-light'].enabled = true;
     }
 }
 
