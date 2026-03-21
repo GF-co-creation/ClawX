@@ -23,6 +23,9 @@ const CHANNEL_TOP_LEVEL_KEYS_TO_KEEP = new Set(['accounts', 'defaultAccount', 'e
 // Channels that are managed as plugins (config goes under plugins.entries, not channels)
 const PLUGIN_CHANNELS = ['whatsapp'];
 
+// Plugin channels that store full config (wsUrl, authToken, etc.) under plugins.entries
+const PLUGIN_CHANNELS_FULL_CONFIG = ['hi-light'];
+
 // Unique credential key per channel type – used for duplicate bot detection.
 // Maps each channel type to the field that uniquely identifies a bot/account.
 // When two agents try to use the same value for this field, the save is rejected.
@@ -453,6 +456,30 @@ export async function saveChannelConfig(
             return;
         }
 
+        // Plugin channels that store full config (wsUrl, authToken, etc.) under plugins.entries
+        if (PLUGIN_CHANNELS_FULL_CONFIG.includes(channelType)) {
+            if (!currentConfig.plugins) {
+                currentConfig.plugins = {};
+            }
+            if (!currentConfig.plugins.entries) {
+                currentConfig.plugins.entries = {};
+            }
+            currentConfig.plugins.entries[channelType] = {
+                ...currentConfig.plugins.entries[channelType],
+                ...config,
+                enabled: config.enabled ?? true,
+            };
+            await writeOpenClawConfig(currentConfig);
+            logger.info('Plugin channel (full config) saved', {
+                channelType,
+                configFile: CONFIG_FILE,
+                path: `plugins.entries.${channelType}`,
+                keys: Object.keys(config),
+            });
+            console.log(`Saved plugin channel full config for ${channelType}`);
+            return;
+        }
+
         if (!currentConfig.channels) {
             currentConfig.channels = {};
         }
@@ -527,6 +554,13 @@ export async function saveChannelConfig(
 
 export async function getChannelConfig(channelType: string, accountId?: string): Promise<ChannelConfigData | undefined> {
     const config = await readOpenClawConfig();
+
+    // Plugin channels with full config stored under plugins.entries
+    if (PLUGIN_CHANNELS_FULL_CONFIG.includes(channelType)) {
+        const entry = config.plugins?.entries?.[channelType];
+        return entry ?? undefined;
+    }
+
     const channelSection = config.channels?.[channelType];
     if (!channelSection) return undefined;
 
