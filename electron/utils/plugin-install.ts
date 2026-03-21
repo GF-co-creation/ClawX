@@ -374,7 +374,23 @@ export function ensurePluginInstalled(
   if (!app.isPackaged) {
     const npmName = PLUGIN_NPM_NAMES[pluginDirName];
     if (npmName) {
-      const npmPkgPath = join(process.cwd(), 'node_modules', ...npmName.split('/'));
+      let npmPkgPath = join(process.cwd(), 'node_modules', ...npmName.split('/'));
+      // pnpm may not hoist scoped packages to project node_modules; resolve via virtual store
+      if (!existsSync(fsPath(join(npmPkgPath, 'openclaw.plugin.json')))) {
+        const pnpmDir = join(process.cwd(), 'node_modules', '.pnpm');
+        if (existsSync(fsPath(pnpmDir))) {
+          const slug = npmName.replace(/\//g, '+');
+          const candidates = readdirSync(fsPath(pnpmDir)).filter((d) => d.startsWith(slug + '@'));
+          if (candidates.length > 0) {
+            // Pick the latest version entry
+            candidates.sort();
+            const virtualPkg = join(pnpmDir, candidates[candidates.length - 1], 'node_modules', ...npmName.split('/'));
+            if (existsSync(fsPath(join(virtualPkg, 'openclaw.plugin.json')))) {
+              npmPkgPath = virtualPkg;
+            }
+          }
+        }
+      }
       if (existsSync(fsPath(join(npmPkgPath, 'openclaw.plugin.json')))) {
         const installedVersion = existsSync(fsPath(targetPkgJson)) ? readPluginVersion(targetPkgJson) : null;
         const sourceVersion = readPluginVersion(join(npmPkgPath, 'package.json'));
