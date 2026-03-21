@@ -44,7 +44,7 @@ function scheduleGatewayChannelRestart(ctx: HostApiContext, reason: string): voi
 // Plugin-based channels require a full Gateway process restart to properly
 // initialize / tear-down plugin connections.  SIGUSR1 in-process reload is
 // not sufficient for channel plugins (see restartGatewayForAgentDeletion).
-const FORCE_RESTART_CHANNELS = new Set(['dingtalk', 'wecom', 'whatsapp', 'feishu', 'qqbot']);
+const FORCE_RESTART_CHANNELS = new Set(['dingtalk', 'wecom', 'whatsapp', 'feishu', 'qqbot', 'hi-light']);
 
 function scheduleGatewayChannelSaveRefresh(
   ctx: HostApiContext,

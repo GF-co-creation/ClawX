@@ -681,7 +681,7 @@ export async function deleteChannelConfig(channelType: string): Promise<void> {
             delete currentConfig.channels[channelType];
             await writeOpenClawConfig(currentConfig);
             console.log(`Deleted channel config for ${channelType}`);
-        } else if (PLUGIN_CHANNELS.includes(channelType)) {
+        } else if (PLUGIN_CHANNELS.includes(channelType) || PLUGIN_CHANNELS_FULL_CONFIG.includes(channelType)) {
             if (currentConfig.plugins?.entries?.[channelType]) {
                 delete currentConfig.plugins.entries[channelType];
                 if (Object.keys(currentConfig.plugins.entries).length === 0) {
@@ -727,6 +727,16 @@ export async function listConfiguredChannels(): Promise<string[]> {
             if (section.enabled === false) continue;
             if (channelHasAnyAccount(section) || Object.keys(section).length > 0) {
                 channels.push(channelType);
+            }
+        }
+    }
+
+    // Include plugin channels with full config (e.g. hi-light) stored under plugins.entries
+    if (config.plugins?.entries) {
+        for (const pluginType of PLUGIN_CHANNELS_FULL_CONFIG) {
+            const entry = config.plugins.entries[pluginType];
+            if (entry && entry.enabled !== false && !channels.includes(pluginType)) {
+                channels.push(pluginType);
             }
         }
     }
@@ -798,6 +808,20 @@ export async function listConfiguredChannelAccounts(): Promise<Record<string, Co
                 return a.localeCompare(b);
             }),
         };
+    }
+
+    // Include plugin channels with full config (e.g. hi-light) under plugins.entries
+    if (config.plugins?.entries) {
+        for (const pluginType of PLUGIN_CHANNELS_FULL_CONFIG) {
+            if (result[pluginType]) continue;
+            const entry = config.plugins.entries[pluginType];
+            if (entry && entry.enabled !== false) {
+                result[pluginType] = {
+                    defaultAccountId: DEFAULT_ACCOUNT_ID,
+                    accountIds: [DEFAULT_ACCOUNT_ID],
+                };
+            }
+        }
     }
 
     return result;
@@ -892,7 +916,7 @@ export async function setChannelEnabled(channelType: string, enabled: boolean): 
     return withConfigLock(async () => {
         const currentConfig = await readOpenClawConfig();
 
-        if (PLUGIN_CHANNELS.includes(channelType)) {
+        if (PLUGIN_CHANNELS.includes(channelType) || PLUGIN_CHANNELS_FULL_CONFIG.includes(channelType)) {
             if (!currentConfig.plugins) currentConfig.plugins = {};
             if (!currentConfig.plugins.entries) currentConfig.plugins.entries = {};
             if (!currentConfig.plugins.entries[channelType]) currentConfig.plugins.entries[channelType] = {};
