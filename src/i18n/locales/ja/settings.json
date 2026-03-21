@@ -260,11 +260,12 @@
   },
   "about": {
     "title": "バージョン情報",
-    "appName": "ClawX",
-    "tagline": "グラフィカル AI アシスタント",
+    "appName": "ClawX & Hi Light 特別版",
+    "tagline": "ClawX - グラフィカル AI アシスタント",
     "basedOn": "OpenClaw ベース",
     "version": "バージョン {{version}}",
-    "docs": "公式サイト",
+    "hilightSite": "Hi Light 公式サイト",
+    "docs": "ClawX 公式サイト",
     "github": "GitHub",
     "faq": "よくある質問"
   }

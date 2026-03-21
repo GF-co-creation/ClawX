@@ -382,7 +382,7 @@
                     "label": "WebSocket URL",
                     "placeholder": "wss://open.guangfan.com/open-apis/device-agent/v1/websocket",
                     "description": "Base WebSocket URL. The plugin appends a UUID path on each connection.",
-                    "presetLabel": "Guangfan Official (wss://open.guangfan.com/...)",
+                    "presetLabel": "Guangfan/Light Sail Official (wss://open.guangfan.com/...)",
                     "customLabel": "Custom URL...",
                     "customPlaceholder": "Enter custom WebSocket URL"
                 },

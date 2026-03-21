@@ -263,11 +263,12 @@
   },
   "about": {
     "title": "关于",
-    "appName": "ClawX",
-    "tagline": "图形化 AI 助手",
+    "appName": "ClawX & Hi Light 特供版本",
+    "tagline": "ClawX - 图形化 AI 助手",
     "basedOn": "基于 OpenClaw",
     "version": "版本 {{version}}",
-    "docs": "官网",
+    "hilightSite": "Hi Light 官网",
+    "docs": "ClawX 官网",
     "github": "GitHub",
     "faq": "常见问题"
   }

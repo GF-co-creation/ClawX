@@ -383,7 +383,7 @@
                     "label": "WebSocket 地址",
                     "placeholder": "wss://open.guangfan.com/open-apis/device-agent/v1/websocket",
                     "description": "基础 WebSocket 地址。插件会在每次连接时自动追加 UUID 路径。",
-                    "presetLabel": "广凡官方 (wss://open.guangfan.com/...)",
+                    "presetLabel": "光帆官方 (wss://open.guangfan.com/...)",
                     "customLabel": "自定义地址...",
                     "customPlaceholder": "输入自定义 WebSocket 地址"
                 },
