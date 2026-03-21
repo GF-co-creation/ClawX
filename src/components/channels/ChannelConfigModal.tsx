@@ -121,7 +121,16 @@ export function ChannelConfigModal({
 
     const shouldLoadExistingConfig = allowExistingConfig && configuredTypes.includes(selectedType);
     if (!shouldLoadExistingConfig) {
-      setConfigValues({});
+      // Pre-populate default values for select fields
+      const defaults: Record<string, string> = {};
+      const channelMeta = CHANNEL_META[selectedType];
+      for (const field of channelMeta.configFields) {
+        if (field.type === 'select' && field.options) {
+          const firstNonCustom = field.options.find(o => o.value !== '__custom__');
+          if (firstNonCustom) defaults[field.key] = firstNonCustom.value;
+        }
+      }
+      setConfigValues(defaults);
       setIsExistingConfig(false);
       setLoadingConfig(false);
       setChannelName(showChannelName ? CHANNEL_NAMES[selectedType] : '');
@@ -758,16 +767,6 @@ function ConfigField({ field, value, onChange, showSecret, onToggleSecret }: Con
   const isCustomSelected = isSelect && value !== '' && !field.options?.some(o => o.value !== '__custom__' && o.value === value);
   const [showCustomInput, setShowCustomInput] = useState(isCustomSelected);
   const [customValue, setCustomValue] = useState(isCustomSelected ? value : '');
-
-  // Auto-populate default value for select fields on mount
-  useEffect(() => {
-    if (isSelect && !value && field.options && field.options.length > 0) {
-      const firstNonCustom = field.options.find(o => o.value !== '__custom__');
-      if (firstNonCustom) {
-        onChange(firstNonCustom.value);
-      }
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectChange = (selectedValue: string) => {
     if (selectedValue === '__custom__') {

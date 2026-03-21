@@ -382,7 +382,7 @@
                     "label": "WebSocket URL",
                     "placeholder": "wss://open.guangfan.com/open-apis/device-agent/v1/websocket",
                     "description": "ベース WebSocket URL。プラグインは接続ごとに UUID パスを自動追加します。",
-                    "presetLabel": "広凡公式 (wss://open.guangfan.com/...)",
+                    "presetLabel": "光帆公式サーバー",
                     "customLabel": "カスタム URL...",
                     "customPlaceholder": "カスタム WebSocket URL を入力"
                 },
