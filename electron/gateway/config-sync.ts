@@ -22,6 +22,7 @@ import { getOpenClawDir, getOpenClawEntryPath, getInstalledOpenClawDir, isOpenCl
 import { getUvMirrorEnv } from '../utils/uv-env';
 import { listConfiguredChannels } from '../utils/channel-config';
 import { syncGatewayTokenToConfig, syncBrowserConfigToOpenClaw, syncSessionIdleMinutesToOpenClaw, sanitizeOpenClawConfig } from '../utils/openclaw-auth';
+import { syncDefaultProviderToRuntime } from '../services/providers/provider-runtime-sync';
 import { buildProxyEnv, resolveProxySettings } from '../utils/proxy';
 import { syncProxyConfigToOpenClaw } from '../utils/openclaw-proxy';
 import { logger } from '../utils/logger';
@@ -169,6 +170,17 @@ export async function syncGatewayConfigBeforeLaunch(
     await syncSessionIdleMinutesToOpenClaw();
   } catch (err) {
     logger.warn('Failed to sync session idle minutes to openclaw.json:', err);
+  }
+
+  // Ensure default provider model is written to openclaw.json before Gateway starts.
+  // Without this, Gateway falls back to Anthropic if no model is configured.
+  try {
+    const defaultProviderId = await getDefaultProvider();
+    if (defaultProviderId) {
+      await syncDefaultProviderToRuntime(defaultProviderId);
+    }
+  } catch (err) {
+    logger.warn('Failed to sync default provider to openclaw.json:', err);
   }
 }
 
