@@ -21,6 +21,7 @@ import {
 import {
   ensureDingTalkPluginInstalled,
   ensureFeishuPluginInstalled,
+  ensureHiLightPluginInstalled,
   ensureQQBotPluginInstalled,
   ensureWeComPluginInstalled,
 } from '../../utils/plugin-install';
@@ -361,6 +362,13 @@ export async function handleChannelRoutes(
         const installResult = await ensureFeishuPluginInstalled();
         if (!installResult.installed) {
           sendJson(res, 500, { success: false, error: installResult.warning || 'Feishu plugin install failed' });
+          return true;
+        }
+      }
+      if (body.channelType === 'hi-light') {
+        const installResult = ensureHiLightPluginInstalled();
+        if (!installResult.installed) {
+          sendJson(res, 500, { success: false, error: installResult.warning || 'Hi-Light plugin install failed' });
           return true;
         }
       }

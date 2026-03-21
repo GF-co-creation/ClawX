@@ -170,6 +170,7 @@ const PLUGIN_NPM_NAMES: Record<string, string> = {
   dingtalk: '@soimy/dingtalk',
   wecom: '@wecom/wecom-openclaw-plugin',
   'feishu-openclaw-plugin': '@larksuite/openclaw-lark',
+  'hi-light': '@art_style666/hi-light',
   qqbot: '@sliverp/qqbot',
 };
 
@@ -450,6 +451,22 @@ export function ensureQQBotPluginInstalled(): { installed: boolean; warning?: st
   return ensurePluginInstalled('qqbot', buildCandidateSources('qqbot'), 'QQ Bot');
 }
 
+export function ensureHiLightPluginInstalled(): { installed: boolean; warning?: string } {
+  // hi-light uses a separate plugins dir (not openclaw-plugins)
+  const candidates = app.isPackaged
+    ? [
+      join(process.resourcesPath, 'plugins', 'hi-light'),
+      join(process.resourcesPath, 'app.asar.unpacked', 'build', 'plugins', 'hi-light'),
+    ]
+    : [
+      join(app.getAppPath(), 'build', 'plugins', 'hi-light'),
+      join(process.cwd(), 'build', 'plugins', 'hi-light'),
+      // pnpm may hoist to homedir node_modules
+      join(homedir(), 'node_modules', '@art_style666', 'hi-light'),
+    ];
+  return ensurePluginInstalled('hi-light', candidates, 'Hi-Light');
+}
+
 // ── Bulk startup installer ───────────────────────────────────────────────────
 
 /**
@@ -460,6 +477,7 @@ const ALL_BUNDLED_PLUGINS = [
   { fn: ensureWeComPluginInstalled, label: 'WeCom' },
   { fn: ensureQQBotPluginInstalled, label: 'QQ Bot' },
   { fn: ensureFeishuPluginInstalled, label: 'Feishu' },
+  { fn: ensureHiLightPluginInstalled, label: 'Hi-Light' },
 ] as const;
 
 /**
