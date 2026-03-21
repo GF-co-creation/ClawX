@@ -374,7 +374,7 @@ export function ensurePluginInstalled(
       if (existsSync(fsPath(join(npmPkgPath, 'openclaw.plugin.json')))) {
         const installedVersion = existsSync(fsPath(targetPkgJson)) ? readPluginVersion(targetPkgJson) : null;
         const sourceVersion = readPluginVersion(join(npmPkgPath, 'package.json'));
-        if (sourceVersion && (!installedVersion || sourceVersion !== installedVersion)) {
+        if (sourceVersion && (!installedVersion || (sourceVersion !== installedVersion && sourceVersion > installedVersion))) {
           logger.info(
             `[plugin] ${installedVersion ? 'Upgrading' : 'Installing'} ${pluginLabel} plugin` +
             `${installedVersion ? `: ${installedVersion} → ${sourceVersion}` : `: ${sourceVersion}`} (dev/node_modules)`,
@@ -453,6 +453,8 @@ export function ensureQQBotPluginInstalled(): { installed: boolean; warning?: st
 
 export function ensureHiLightPluginInstalled(): { installed: boolean; warning?: string } {
   // hi-light uses a separate plugins dir (not openclaw-plugins)
+  // Dev mode: the PLUGIN_NPM_NAMES fallback in ensurePluginInstalled handles
+  // pnpm virtual store resolution automatically — no need for homedir fallback.
   const candidates = app.isPackaged
     ? [
       join(process.resourcesPath, 'plugins', 'hi-light'),
@@ -461,8 +463,6 @@ export function ensureHiLightPluginInstalled(): { installed: boolean; warning?: 
     : [
       join(app.getAppPath(), 'build', 'plugins', 'hi-light'),
       join(process.cwd(), 'build', 'plugins', 'hi-light'),
-      // pnpm may hoist to homedir node_modules
-      join(homedir(), 'node_modules', '@art_style666', 'hi-light'),
     ];
   return ensurePluginInstalled('hi-light', candidates, 'Hi-Light');
 }
