@@ -2124,13 +2124,15 @@ function registerClawHubHandlers(clawHubService: ClawHubService): void {
         return line;
       };
 
-      let lastSent = '';
+      let lastSentBase = '';
       const dedupeAndSend = (raw: string) => {
         const lines = raw.split(/[\n\r]+/).map(cleanLine).filter(l => l.length > 2);
         for (const line of lines) {
           const translated = toChinese(line);
-          if (translated === lastSent) continue;
-          lastSent = translated;
+          // Dedup: strip trailing dots for comparison (spinner: "Cloning repository." vs "Cloning repository..")
+          const base = translated.replace(/\.+$/, '');
+          if (base === lastSentBase) continue;
+          lastSentBase = base;
           console.log(`[skills:installFromUrl] ${line}`);
           sendProgress(translated);
         }
