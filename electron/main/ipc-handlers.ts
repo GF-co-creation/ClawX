@@ -2072,8 +2072,12 @@ function registerClawHubHandlers(clawHubService: ClawHubService): void {
         try { sender.send('skills:installProgress', { line }); } catch { /* window closed */ }
       };
 
-      // Ensure --agent openclaw is present to avoid interactive prompt
-      const finalCommand = command.includes('--agent') ? command : `${command} --agent openclaw`;
+      // Ensure --agent openclaw and --yes flags are present to avoid interactive prompt
+      // Use --global (-g) so skills install to ~/.openclaw/skills/ (user-level) not project-level
+      let finalCommand = command;
+      if (!finalCommand.includes('--agent')) finalCommand += ' --agent openclaw';
+      if (!finalCommand.includes('--yes') && !finalCommand.includes('-y')) finalCommand += ' --yes';
+      if (!finalCommand.includes('--global') && !finalCommand.includes('-g')) finalCommand += ' --global';
       const isWin = process.platform === 'win32';
       const child = spawn('npx', finalCommand.split(/\s+/), {
         cwd: homedir(),
