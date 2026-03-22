@@ -73,12 +73,13 @@ function CliInstallCard() {
     // Listen for progress events from main process
     const onProgress = (data: unknown) => {
       const { line } = (data || {}) as { line: string };
-      if (line) {
-        setInstallLog((prev) => {
-          const next = [...prev, line];
-          return next.length > 20 ? next.slice(-20) : next;
-        });
-      }
+      if (!line) return;
+      setInstallLog((prev) => {
+        // Skip if identical to last line (dedup spinner/progress updates)
+        if (prev.length > 0 && prev[prev.length - 1] === line) return prev;
+        const next = [...prev, line];
+        return next.length > 8 ? next.slice(-8) : next;
+      });
     };
     const unsubProgress = window.electron.ipcRenderer.on('skills:installProgress', onProgress);
 
@@ -158,20 +159,15 @@ function CliInstallCard() {
           </Button>
         </div>
         {installing && (
-          <div className="bg-black/30 rounded-md p-3 max-h-32 overflow-y-auto">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="bg-black/20 rounded-md px-3 py-2">
+            <div className="flex items-center gap-2">
               <LoadingSpinner size="sm" />
-              <span className="text-xs text-blue-400 font-medium">
-                {t('marketplace.cliInstall.installing', { defaultValue: '正在安装...' })}
+              <span className="text-xs text-blue-400 font-medium truncate">
+                {installLog.length > 0
+                  ? installLog[installLog.length - 1]
+                  : t('marketplace.cliInstall.installing', { defaultValue: '正在安装...' })}
               </span>
             </div>
-            {installLog.length > 0 && (
-              <div className="space-y-0.5">
-                {installLog.map((line, i) => (
-                  <p key={i} className="text-[11px] font-mono text-muted-foreground leading-tight truncate">{line}</p>
-                ))}
-              </div>
-            )}
           </div>
         )}
       </CardContent>

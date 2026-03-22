@@ -2086,27 +2086,36 @@ function registerClawHubHandlers(clawHubService: ClawHubService): void {
       let stdout = '';
       let stderr = '';
 
-      // Strip ANSI escape codes for clean progress display
-      const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/[^\x20-\x7E\u4e00-\u9fff\u3000-\u303f]/g, '').trim();
+      // Strip ANSI escape codes + spinner/box-drawing chars for clean display
+      const cleanLine = (s: string) => s
+        .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')           // ANSI escapes
+        .replace(/[\u2500-\u257F\u2580-\u259F\u25A0-\u25FF]/g, '') // box-drawing & block chars
+        .replace(/[\u2714\u2718\u2022\u25CF\u25CB\u25B6\u25C0\u2B06\u2B07\u2191\u2193\u2190\u2192]/g, '') // common symbols
+        .replace(/[^\x20-\x7E\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/g, '') // keep ASCII + CJK only
+        .trim();
+
+      let lastSent = '';
+      const dedupeAndSend = (raw: string) => {
+        const lines = raw.split(/[\n\r]+/).map(cleanLine).filter(l => l.length > 2);
+        for (const line of lines) {
+          // Skip duplicate consecutive lines (spinner progress like "Cloning repository...")
+          if (line === lastSent) continue;
+          lastSent = line;
+          console.log(`[skills:installFromUrl] ${line}`);
+          sendProgress(line);
+        }
+      };
 
       child.stdout?.on('data', (data: Buffer) => {
         const raw = data.toString();
         stdout += raw;
-        const lines = raw.split('\n').map(stripAnsi).filter(l => l.length > 0);
-        for (const line of lines) {
-          console.log(`[skills:installFromUrl] stdout: ${line}`);
-          sendProgress(line);
-        }
+        dedupeAndSend(raw);
       });
 
       child.stderr?.on('data', (data: Buffer) => {
         const raw = data.toString();
         stderr += raw;
-        const lines = raw.split('\n').map(stripAnsi).filter(l => l.length > 0);
-        for (const line of lines) {
-          console.log(`[skills:installFromUrl] stderr: ${line}`);
-          sendProgress(line);
-        }
+        dedupeAndSend(raw);
       });
 
       child.on('error', (error: Error) => {
