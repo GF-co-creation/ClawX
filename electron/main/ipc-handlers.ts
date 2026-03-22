@@ -2086,11 +2086,14 @@ function registerClawHubHandlers(clawHubService: ClawHubService): void {
       let stdout = '';
       let stderr = '';
 
-      // Strip ANSI escape codes + spinner/box-drawing chars for clean display
+      // Strip ALL ANSI escape codes, control chars, spinner/box-drawing for clean display
       const cleanLine = (s: string) => s
-        .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')           // ANSI escapes
-        .replace(/[\u2500-\u257F\u2580-\u259F\u25A0-\u25FF]/g, '') // box-drawing & block chars
-        .replace(/[\u2714\u2718\u2022\u25CF\u25CB\u25B6\u25C0\u2B06\u2B07\u2191\u2193\u2190\u2192]/g, '') // common symbols
+        .replace(/\x1b\[[\d;]*[A-Za-z]/g, '')             // CSI sequences (e.g. \x1b[35m, \x1b[999D)
+        .replace(/\x1b\][\s\S]*?(?:\x07|\x1b\\)/g, '')    // OSC sequences
+        .replace(/\x1b[()][A-Za-z0-9]/g, '')               // charset switch
+        .replace(/\x1b[\x20-\x2F]*[\x40-\x7E]/g, '')      // other ESC sequences
+        .replace(/\x07/g, '')                               // BEL
+        .replace(/\[\??[\d;]*[a-zA-Z]/g, '')               // bare CSI without ESC (garbled encoding)
         .replace(/[^\x20-\x7E\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/g, '') // keep ASCII + CJK only
         .trim();
 
@@ -2098,14 +2101,21 @@ function registerClawHubHandlers(clawHubService: ClawHubService): void {
       const translateProgress: Record<string, string> = {
         'Cloning repository': '正在克隆仓库',
         'Repository cloned': '仓库克隆完成',
+        'Clone timed out': '克隆超时',
+        'Failed to clone repository': '克隆仓库失败',
+        'Installation failed': '安装失败',
+        'Canceled': '已取消',
         'Found': '已找到',
         'Selected': '已选择',
         'Installing': '正在安装',
         'Installed': '安装完成',
         'Writing': '正在写入',
+        'Written': '已写入',
         'Done': '完成',
         'Downloading': '正在下载',
         'Extracting': '正在解压',
+        'Source': '来源',
+        'Ensure you have access': '请确认你有仓库访问权限',
       };
       const toChinese = (line: string) => {
         for (const [en, zh] of Object.entries(translateProgress)) {
