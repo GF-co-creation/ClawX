@@ -19,7 +19,6 @@ import {
   Globe,
   Copy,
   Terminal,
-  Check as CheckIcon,
   Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -47,32 +46,18 @@ import type { TFunction } from 'i18next';
 function CliInstallCard() {
   const { t } = useTranslation('skills');
   const { fetchSkills } = useSkillsStore();
-  const [copied, setCopied] = useState(false);
   const [customUrl, setCustomUrl] = useState('');
   const [installing, setInstalling] = useState(false);
 
   const getCommand = () => {
-    if (customUrl.trim()) {
-      // If user pastes full npx command, use as-is
-      if (customUrl.trim().startsWith('npx ') || customUrl.trim().startsWith('skills ')) {
-        return customUrl.trim();
-      }
-      return `skills add ${customUrl.trim()} --agent openclaw`;
-    }
-    return '';
-  };
-
-  const handleCopy = async () => {
-    const cmd = getCommand();
-    if (!cmd) return;
-    try {
-      const fullCmd = cmd.startsWith('npx ') ? cmd : `npx ${cmd}`;
-      await navigator.clipboard.writeText(fullCmd);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // fallback
-    }
+    const input = customUrl.trim();
+    if (!input) return '';
+    // Strip leading "npx " if user pasted full command
+    const stripped = input.startsWith('npx ') ? input.slice(4).trim() : input;
+    // If it already looks like a skills CLI command, use as-is
+    if (stripped.startsWith('skills ')) return stripped;
+    // Otherwise wrap as skills add
+    return `skills add ${stripped} --agent openclaw`;
   };
 
   const handleInstall = async () => {
@@ -154,23 +139,8 @@ function CliInstallCard() {
             )}
           </Button>
         </div>
-        {customUrl.trim() && (
-          <div className="flex items-center gap-2">
-            <code className="flex-1 text-xs font-mono bg-black/30 rounded-md px-3 py-2 text-muted-foreground overflow-x-auto whitespace-nowrap">
-              npx {getCommand()}
-            </code>
-            <Button
-              variant="outline"
-              size="icon"
-              className="shrink-0 h-8 w-8"
-              onClick={handleCopy}
-            >
-              {copied ? <CheckIcon className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-            </Button>
-          </div>
-        )}
         <p className="text-xs text-muted-foreground">
-          {t('marketplace.cliInstall.hint', { defaultValue: '粘贴命令后点击安装，技能将安装到 ~/.openclaw/skills/，自动重启网关生效' })}
+          {t('marketplace.cliInstall.hint', { defaultValue: '粘贴命令或 GitHub 仓库地址后点击安装，技能将安装到 ~/.openclaw/skills/，自动重启网关生效' })}
         </p>
       </CardContent>
     </Card>
