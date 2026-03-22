@@ -264,6 +264,7 @@
     "tagline": "ClawX - グラフィカル AI アシスタント",
     "basedOn": "OpenClaw ベース",
     "version": "バージョン {{version}}",
+    "thanks": "陪伴の多大なるご協力に特別な感謝を",
     "hilightSite": "Hi Light 公式サイト",
     "docs": "ClawX 公式サイト",
     "github": "GitHub",

@@ -267,6 +267,7 @@
     "tagline": "ClawX - 图形化 AI 助手",
     "basedOn": "基于 OpenClaw",
     "version": "版本 {{version}}",
+    "thanks": "特别鸣谢陪伴的合作开发",
     "hilightSite": "Hi Light 官网",
     "docs": "ClawX 官网",
     "github": "GitHub",

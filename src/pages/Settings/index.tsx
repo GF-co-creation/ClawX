@@ -1059,6 +1059,7 @@ export function Settings() {
               <p>{t('about.tagline')}</p>
               <p>{t('about.basedOn')}</p>
               <p>{t('about.version', { version: currentVersion })}</p>
+              <p className="text-[13px] text-foreground/60 italic">{t('about.thanks')}</p>
               <div className="flex gap-4 pt-3">
                 <Button
                   variant="link"

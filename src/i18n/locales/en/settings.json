@@ -267,6 +267,7 @@
     "tagline": "ClawX - Graphical AI Assistant",
     "basedOn": "Based on OpenClaw",
     "version": "Version {{version}}",
+    "thanks": "Special thanks to 陪伴 for the great collaboration",
     "hilightSite": "Hi Light Website",
     "docs": "ClawX Website",
     "github": "GitHub",
