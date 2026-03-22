@@ -54,10 +54,13 @@ function CliInstallCard() {
     if (!input) return '';
     // Strip leading "npx " if user pasted full command
     const stripped = input.startsWith('npx ') ? input.slice(4).trim() : input;
-    // If it already looks like a skills CLI command, use as-is
-    if (stripped.startsWith('skills ')) return stripped;
-    // Otherwise wrap as skills add
-    return `skills add ${stripped} --agent openclaw`;
+    // Build the base command
+    let cmd = stripped.startsWith('skills ') ? stripped : `skills add ${stripped}`;
+    // Always ensure --agent openclaw is present to skip interactive agent selection
+    if (!cmd.includes('--agent')) {
+      cmd += ' --agent openclaw';
+    }
+    return cmd;
   };
 
   const handleInstall = async () => {

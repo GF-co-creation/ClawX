@@ -2067,11 +2067,14 @@ function registerClawHubHandlers(clawHubService: ClawHubService): void {
       const { command } = params;
       console.log(`[skills:installFromUrl] running: npx ${command}`);
 
+      // Ensure --agent openclaw is present to avoid interactive prompt
+      const finalCommand = command.includes('--agent') ? command : `${command} --agent openclaw`;
       const isWin = process.platform === 'win32';
-      const child = spawn('npx', command.split(/\s+/), {
+      const child = spawn('npx', finalCommand.split(/\s+/), {
         cwd: homedir(),
         shell: isWin,
-        env: { ...process.env },
+        env: { ...process.env, CI: '1' },
+        stdio: ['ignore', 'pipe', 'pipe'],
         windowsHide: true,
       });
 
