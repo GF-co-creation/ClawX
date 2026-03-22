@@ -130,19 +130,3 @@ jobs:
           echo "$FILES" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Create Gitee Release
-        if: env.GITEE_TOKEN != ''
-        uses: nicennnnnnnlee/action-gitee-release@master
-        with:
-          gitee_action: create_release
-          gitee_owner: guangfan-gongjian
-          gitee_repo: ClawX
-          gitee_token: ${{ secrets.GITEE_TOKEN }}
-          gitee_tag_name: ${{ github.ref_name }}
-          gitee_release_name: ${{ github.ref_name }}
-          gitee_release_body: "Release ${{ github.ref_name }} - synced from GitHub"
-          gitee_target_commitish: main
-          gitee_prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
-          gitee_files: ${{ steps.collect.outputs.files }}
-        env:
-          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
