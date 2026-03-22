@@ -2062,10 +2062,15 @@ function registerClawHubHandlers(clawHubService: ClawHubService): void {
   });
 
   // Install skill from URL via npx skills add
-  ipcMain.handle('skills:installFromUrl', async (_, params: { command: string }) => {
+  ipcMain.handle('skills:installFromUrl', async (event, params: { command: string }) => {
     return new Promise((resolve) => {
       const { command } = params;
       console.log(`[skills:installFromUrl] running: npx ${command}`);
+
+      const sender = event.sender;
+      const sendProgress = (line: string) => {
+        try { sender.send('skills:installProgress', { line }); } catch { /* window closed */ }
+      };
 
       // Ensure --agent openclaw is present to avoid interactive prompt
       const finalCommand = command.includes('--agent') ? command : `${command} --agent openclaw`;
@@ -2081,16 +2086,27 @@ function registerClawHubHandlers(clawHubService: ClawHubService): void {
       let stdout = '';
       let stderr = '';
 
+      // Strip ANSI escape codes for clean progress display
+      const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/[^\x20-\x7E\u4e00-\u9fff\u3000-\u303f]/g, '').trim();
+
       child.stdout?.on('data', (data: Buffer) => {
-        const line = data.toString();
-        stdout += line;
-        console.log(`[skills:installFromUrl] stdout: ${line.trim()}`);
+        const raw = data.toString();
+        stdout += raw;
+        const lines = raw.split('\n').map(stripAnsi).filter(l => l.length > 0);
+        for (const line of lines) {
+          console.log(`[skills:installFromUrl] stdout: ${line}`);
+          sendProgress(line);
+        }
       });
 
       child.stderr?.on('data', (data: Buffer) => {
-        const line = data.toString();
-        stderr += line;
-        console.log(`[skills:installFromUrl] stderr: ${line.trim()}`);
+        const raw = data.toString();
+        stderr += raw;
+        const lines = raw.split('\n').map(stripAnsi).filter(l => l.length > 0);
+        for (const line of lines) {
+          console.log(`[skills:installFromUrl] stderr: ${line}`);
+          sendProgress(line);
+        }
       });
 
       child.on('error', (error: Error) => {

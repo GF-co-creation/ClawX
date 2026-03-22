@@ -48,6 +48,7 @@ function CliInstallCard() {
   const { fetchSkills } = useSkillsStore();
   const [customUrl, setCustomUrl] = useState('');
   const [installing, setInstalling] = useState(false);
+  const [installLog, setInstallLog] = useState<string[]>([]);
 
   const getCommand = () => {
     const input = customUrl.trim();
@@ -67,6 +68,20 @@ function CliInstallCard() {
     const cmd = getCommand();
     if (!cmd) return;
     setInstalling(true);
+    setInstallLog([]);
+
+    // Listen for progress events from main process
+    const onProgress = (data: unknown) => {
+      const { line } = (data || {}) as { line: string };
+      if (line) {
+        setInstallLog((prev) => {
+          const next = [...prev, line];
+          return next.length > 20 ? next.slice(-20) : next;
+        });
+      }
+    };
+    const unsubProgress = window.electron.ipcRenderer.on('skills:installProgress', onProgress);
+
     try {
       const result = await window.electron.ipcRenderer.invoke('skills:installFromUrl', { command: cmd }) as {
         success: boolean;
@@ -76,9 +91,7 @@ function CliInstallCard() {
       if (result.success) {
         toast.success(t('marketplace.cliInstall.success', { defaultValue: '技能安装成功！正在刷新...' }));
         setCustomUrl('');
-        // Refresh skills list
         await fetchSkills();
-        // Restart gateway to pick up new skills
         try {
           await window.electron.ipcRenderer.invoke('gateway:restart');
           toast.success(t('marketplace.cliInstall.restarted', { defaultValue: '网关已重启，技能已生效' }));
@@ -91,6 +104,7 @@ function CliInstallCard() {
     } catch (error) {
       toast.error(String(error));
     } finally {
+      if (typeof unsubProgress === 'function') unsubProgress();
       setInstalling(false);
     }
   };
@@ -124,6 +138,7 @@ function CliInstallCard() {
             value={customUrl}
             onChange={(e) => setCustomUrl(e.target.value)}
             className="font-mono text-xs bg-background/50"
+            disabled={installing}
             onKeyDown={(e) => { if (e.key === 'Enter' && customUrl.trim()) handleInstall(); }}
           />
           <Button
@@ -142,9 +157,23 @@ function CliInstallCard() {
             )}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {t('marketplace.cliInstall.hint', { defaultValue: '粘贴命令或 GitHub 仓库地址后点击安装，技能将安装到 ~/.openclaw/skills/，自动重启网关生效' })}
-        </p>
+        {installing && (
+          <div className="bg-black/30 rounded-md p-3 max-h-32 overflow-y-auto">
+            <div className="flex items-center gap-2 mb-2">
+              <LoadingSpinner size="sm" />
+              <span className="text-xs text-blue-400 font-medium">
+                {t('marketplace.cliInstall.installing', { defaultValue: '正在安装...' })}
+              </span>
+            </div>
+            {installLog.length > 0 && (
+              <div className="space-y-0.5">
+                {installLog.map((line, i) => (
+                  <p key={i} className="text-[11px] font-mono text-muted-foreground leading-tight truncate">{line}</p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

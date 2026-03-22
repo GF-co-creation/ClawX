@@ -176,6 +176,7 @@ const electronAPI = {
         'oauth:code',
         'oauth:success',
         'oauth:error',
+        'skills:installProgress',
         'openclaw:cli-installed',
       ];
 
