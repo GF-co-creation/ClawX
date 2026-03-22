@@ -2065,7 +2065,6 @@ function registerClawHubHandlers(clawHubService: ClawHubService): void {
   ipcMain.handle('skills:installFromUrl', async (event, params: { command: string }) => {
     return new Promise((resolve) => {
       const { command } = params;
-      console.log(`[skills:installFromUrl] running: npx ${command}`);
 
       const sender = event.sender;
       const sendProgress = (line: string) => {
@@ -2078,6 +2077,7 @@ function registerClawHubHandlers(clawHubService: ClawHubService): void {
       if (!finalCommand.includes('--agent')) finalCommand += ' --agent openclaw';
       if (!finalCommand.includes('--yes') && !finalCommand.includes('-y')) finalCommand += ' --yes';
       if (!finalCommand.includes('--global') && !finalCommand.includes('-g')) finalCommand += ' --global';
+      console.log(`[skills:installFromUrl] running: npx ${finalCommand}`);
       const isWin = process.platform === 'win32';
       const child = spawn('npx', finalCommand.split(/\s+/), {
         cwd: homedir(),
