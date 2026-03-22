@@ -2094,15 +2094,35 @@ function registerClawHubHandlers(clawHubService: ClawHubService): void {
         .replace(/[^\x20-\x7E\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/g, '') // keep ASCII + CJK only
         .trim();
 
+      // Translate common npx skills progress messages to Chinese
+      const translateProgress: Record<string, string> = {
+        'Cloning repository': '正在克隆仓库',
+        'Repository cloned': '仓库克隆完成',
+        'Found': '已找到',
+        'Selected': '已选择',
+        'Installing': '正在安装',
+        'Installed': '安装完成',
+        'Writing': '正在写入',
+        'Done': '完成',
+        'Downloading': '正在下载',
+        'Extracting': '正在解压',
+      };
+      const toChinese = (line: string) => {
+        for (const [en, zh] of Object.entries(translateProgress)) {
+          if (line.startsWith(en)) return zh + line.slice(en.length);
+        }
+        return line;
+      };
+
       let lastSent = '';
       const dedupeAndSend = (raw: string) => {
         const lines = raw.split(/[\n\r]+/).map(cleanLine).filter(l => l.length > 2);
         for (const line of lines) {
-          // Skip duplicate consecutive lines (spinner progress like "Cloning repository...")
-          if (line === lastSent) continue;
-          lastSent = line;
+          const translated = toChinese(line);
+          if (translated === lastSent) continue;
+          lastSent = translated;
           console.log(`[skills:installFromUrl] ${line}`);
-          sendProgress(line);
+          sendProgress(translated);
         }
       };
 
