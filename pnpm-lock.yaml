@@ -34,6 +34,9 @@ importers:
         specifier: ^8.19.0
         version: 8.19.0
     devDependencies:
+      '@art_style666/hi-light':
+        specifier: ^2.0.4
+        version: 2.0.4
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.0.0(jiti@1.21.7))
@@ -266,6 +269,9 @@ packages:
 
   '@ark/util@0.56.0':
     resolution: {integrity: sha512-BghfRC8b9pNs3vBoDJhcta0/c1J1rsoS1+HgVUreMFPdhz/CRAKReAu57YEllNaSy98rWAdY1gE+gFup7OXpgA==}
+
+  '@art_style666/hi-light@2.0.4':
+    resolution: {integrity: sha512-GGTpizQSWGvNPWHbUJmbuvbFiyvATmvX258vwbwYyLwTFIv1PUL5zhZXRAwYMNNlTgdSkD04dX0BdESXFcS59g==}
 
   '@asamuzakjp/css-color@4.1.2':
     resolution: {integrity: sha512-NfBUvBaYgKIuq6E/RBLY1m0IohzNHAYyaJGuTK79Z23uNwmz2jl1mPsC5ZxCCxylinKhT1Amn5oNTlx1wN8cQg==}
@@ -7189,6 +7195,14 @@ snapshots:
       '@ark/util': 0.56.0
 
   '@ark/util@0.56.0': {}
+
+  '@art_style666/hi-light@2.0.4':
+    dependencies:
+      ws: 8.19.0
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   '@asamuzakjp/css-color@4.1.2':
     dependencies:
