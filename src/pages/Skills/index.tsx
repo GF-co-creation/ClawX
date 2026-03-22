@@ -18,11 +18,15 @@ import {
   FileCode,
   Globe,
   Copy,
+  Terminal,
+  Check as CheckIcon,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useSkillsStore } from '@/stores/skills';
 import { useGatewayStore } from '@/stores/gateway';
@@ -38,6 +42,140 @@ import type { TFunction } from 'i18next';
 
 
 
+
+// CLI Install Card component
+function CliInstallCard() {
+  const { t } = useTranslation('skills');
+  const { fetchSkills } = useSkillsStore();
+  const [copied, setCopied] = useState(false);
+  const [customUrl, setCustomUrl] = useState('');
+  const [installing, setInstalling] = useState(false);
+
+  const getCommand = () => {
+    if (customUrl.trim()) {
+      // If user pastes full npx command, use as-is
+      if (customUrl.trim().startsWith('npx ') || customUrl.trim().startsWith('skills ')) {
+        return customUrl.trim();
+      }
+      return `skills add ${customUrl.trim()} --agent openclaw`;
+    }
+    return '';
+  };
+
+  const handleCopy = async () => {
+    const cmd = getCommand();
+    if (!cmd) return;
+    try {
+      const fullCmd = cmd.startsWith('npx ') ? cmd : `npx ${cmd}`;
+      await navigator.clipboard.writeText(fullCmd);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+    }
+  };
+
+  const handleInstall = async () => {
+    const cmd = getCommand();
+    if (!cmd) return;
+    setInstalling(true);
+    try {
+      const result = await window.electron.ipcRenderer.invoke('skills:installFromUrl', { command: cmd }) as {
+        success: boolean;
+        output?: string;
+        error?: string;
+      };
+      if (result.success) {
+        toast.success(t('marketplace.cliInstall.success', { defaultValue: '技能安装成功！正在刷新...' }));
+        setCustomUrl('');
+        // Refresh skills list
+        await fetchSkills();
+        // Restart gateway to pick up new skills
+        try {
+          await window.electron.ipcRenderer.invoke('gateway:restart');
+          toast.success(t('marketplace.cliInstall.restarted', { defaultValue: '网关已重启，技能已生效' }));
+        } catch {
+          toast.info(t('marketplace.cliInstall.restartManual', { defaultValue: '请手动重启网关以加载新技能' }));
+        }
+      } else {
+        toast.error(result.error || t('marketplace.cliInstall.failed', { defaultValue: '安装失败' }));
+      }
+    } catch (error) {
+      toast.error(String(error));
+    } finally {
+      setInstalling(false);
+    }
+  };
+
+  const handleOpenSkillsSh = () => {
+    try {
+      if (window.electron?.openExternal) {
+        window.electron.openExternal('https://skills.sh');
+      } else {
+        window.open('https://skills.sh', '_blank');
+      }
+    } catch { /* ignore */ }
+  };
+
+  return (
+    <Card className="border-blue-500/30 bg-blue-500/5">
+      <CardContent className="py-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Terminal className="h-4 w-4 text-blue-400" />
+          <span className="text-sm font-medium">{t('marketplace.cliInstall.title', { defaultValue: '命令行安装技能' })}</span>
+          <button
+            onClick={handleOpenSkillsSh}
+            className="text-xs text-blue-400 hover:text-blue-300 transition-colors ml-auto"
+          >
+            skills.sh ↗
+          </button>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            placeholder={t('marketplace.cliInstall.placeholder', { defaultValue: '粘贴 npx skills add ... 命令或 GitHub 仓库地址' })}
+            value={customUrl}
+            onChange={(e) => setCustomUrl(e.target.value)}
+            className="font-mono text-xs bg-background/50"
+            onKeyDown={(e) => { if (e.key === 'Enter' && customUrl.trim()) handleInstall(); }}
+          />
+          <Button
+            onClick={handleInstall}
+            disabled={!customUrl.trim() || installing}
+            size="sm"
+            className="shrink-0"
+          >
+            {installing ? (
+              <LoadingSpinner size="sm" />
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-1" />
+                {t('marketplace.cliInstall.installBtn', { defaultValue: '安装' })}
+              </>
+            )}
+          </Button>
+        </div>
+        {customUrl.trim() && (
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-xs font-mono bg-black/30 rounded-md px-3 py-2 text-muted-foreground overflow-x-auto whitespace-nowrap">
+              npx {getCommand()}
+            </code>
+            <Button
+              variant="outline"
+              size="icon"
+              className="shrink-0 h-8 w-8"
+              onClick={handleCopy}
+            >
+              {copied ? <CheckIcon className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">
+          {t('marketplace.cliInstall.hint', { defaultValue: '粘贴命令后点击安装，技能将安装到 ~/.openclaw/skills/，自动重启网关生效' })}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
 
 // Skill detail dialog component
 interface SkillDetailDialogProps {
@@ -847,6 +985,11 @@ export function Skills() {
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
+            {/* CLI Install Section */}
+            <div className="mb-4">
+              <CliInstallCard />
+            </div>
+
             {searchError && (
               <div className="mb-4 p-4 rounded-xl border border-destructive/50 bg-destructive/10 text-destructive text-sm font-medium flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 shrink-0" />

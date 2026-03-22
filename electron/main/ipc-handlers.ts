@@ -4,6 +4,7 @@
  */
 import { ipcMain, BrowserWindow, shell, dialog, app, nativeImage } from 'electron';
 import { existsSync } from 'node:fs';
+import { spawn } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join, extname, basename } from 'node:path';
 import crypto from 'node:crypto';
@@ -2058,6 +2059,52 @@ function registerClawHubHandlers(clawHubService: ClawHubService): void {
     } catch (error) {
       return { success: false, error: String(error) };
     }
+  });
+
+  // Install skill from URL via npx skills add
+  ipcMain.handle('skills:installFromUrl', async (_, params: { command: string }) => {
+    return new Promise((resolve) => {
+      const { command } = params;
+      console.log(`[skills:installFromUrl] running: npx ${command}`);
+
+      const isWin = process.platform === 'win32';
+      const child = spawn('npx', command.split(/\s+/), {
+        cwd: homedir(),
+        shell: isWin,
+        env: { ...process.env },
+        windowsHide: true,
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      child.stdout?.on('data', (data: Buffer) => {
+        const line = data.toString();
+        stdout += line;
+        console.log(`[skills:installFromUrl] stdout: ${line.trim()}`);
+      });
+
+      child.stderr?.on('data', (data: Buffer) => {
+        const line = data.toString();
+        stderr += line;
+        console.log(`[skills:installFromUrl] stderr: ${line.trim()}`);
+      });
+
+      child.on('error', (error: Error) => {
+        console.error('[skills:installFromUrl] process error:', error);
+        resolve({ success: false, error: error.message });
+      });
+
+      child.on('close', (code: number | null) => {
+        if (code === 0) {
+          console.log('[skills:installFromUrl] success');
+          resolve({ success: true, output: stdout.trim() });
+        } else {
+          console.error(`[skills:installFromUrl] failed with code ${code}`);
+          resolve({ success: false, error: stderr.trim() || stdout.trim() || `Process exited with code ${code}` });
+        }
+      });
+    });
   });
 }
 
